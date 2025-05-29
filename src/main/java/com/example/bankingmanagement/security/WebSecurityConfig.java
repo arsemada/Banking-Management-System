@@ -56,10 +56,10 @@ public class WebSecurityConfig { // Or SecurityConfig
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
-                        // This pattern is correct for /auth/signup
+                        // This pattern is correct for /auth/signup and /auth/signin
                         auth.requestMatchers("/auth/**").permitAll()
-                                .requestMatchers("/api/test/**").permitAll()
-                                .anyRequest().authenticated()
+
+                                .anyRequest().authenticated() // All other requests now require authentication
                 );
 
         http.authenticationProvider(authenticationProvider());
