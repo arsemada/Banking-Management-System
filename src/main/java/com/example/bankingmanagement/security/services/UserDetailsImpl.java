@@ -18,7 +18,7 @@ public class UserDetailsImpl implements UserDetails {
     private String username;
     private String email;
 
-    @JsonIgnore // Prevents password from being exposed in JSON responses
+    @JsonIgnore
     private String password;
 
     private Collection<? extends GrantedAuthority> authorities;
@@ -32,10 +32,9 @@ public class UserDetailsImpl implements UserDetails {
         this.authorities = authorities;
     }
 
-    // Static method to build UserDetailsImpl from your User entity
     public static UserDetailsImpl build(User user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.name())) // Convert Role enum to SimpleGrantedAuthority
+                .map(role -> new SimpleGrantedAuthority(role.name()))
                 .collect(Collectors.toList());
 
         return new UserDetailsImpl(
@@ -51,14 +50,6 @@ public class UserDetailsImpl implements UserDetails {
         return authorities;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
     @Override
     public String getPassword() {
         return password;
@@ -69,7 +60,14 @@ public class UserDetailsImpl implements UserDetails {
         return username;
     }
 
-    // Default implementations for account status;
+    public Long getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -77,7 +75,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true; // You will implement account lockout logic here later
+        return true;
     }
 
     @Override
@@ -87,14 +85,16 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true; // You can add logic for user enablement/disablement
+        return true;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         UserDetailsImpl user = (UserDetailsImpl) o;
-        return Objects.equals(id, user.id); // Equality based on user ID
+        return Objects.equals(id, user.id);
     }
 }

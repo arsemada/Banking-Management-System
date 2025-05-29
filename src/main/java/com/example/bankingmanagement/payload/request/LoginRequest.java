@@ -12,6 +12,4 @@ public class LoginRequest {
 
     @NotBlank
     private String password;
-
-    // Getters and Setters (Lombok @Getter, @Setter will do this automatically)
 }

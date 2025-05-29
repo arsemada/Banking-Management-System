@@ -1,11 +1,11 @@
 package com.example.bankingmanagement.payload.request;
 
-import com.example.bankingmanagement.model.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import com.example.bankingmanagement.model.Role; // Important import
 
 import java.util.Set;
 
@@ -25,7 +25,5 @@ public class SignupRequest {
     @Size(min = 6, max = 40)
     private String password;
 
-
-    private Set<Role> roles;
-
+    private Set<String> roles;
 }
