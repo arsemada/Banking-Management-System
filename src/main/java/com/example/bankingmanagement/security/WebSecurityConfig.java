@@ -18,7 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity // Enables @PreAuthorize, @PostAuthorize, @HasRole, @Secured annotations
+@EnableMethodSecurity
 public class WebSecurityConfig {
 
     @Autowired
@@ -52,16 +52,20 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()) // Disable CSRF as we are stateless (JWT based)
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler)) // Handle unauthorized access
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Use stateless sessions
+        http.csrf(csrf -> csrf.disable())
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
-                        // Permit access to authentication endpoints
-                        auth.requestMatchers("/auth/**").permitAll()
-                                // Permit access to test public endpoint
-                                .requestMatchers("/api/test/all").permitAll()
-                                // All other requests require authentication
-                                .anyRequest().authenticated()
+                        auth.requestMatchers("/auth/**").permitAll() // Authentication API endpoints
+                                .requestMatchers("/api/test/all").permitAll() // Public test API
+                                .requestMatchers("/login").permitAll() // Login HTML page (via controller)
+                                .requestMatchers("/").permitAll() // Root path redirects to login
+                                .requestMatchers("/dashboard").permitAll() // <--- ADDED THIS LINE (Dashboard HTML page via controller)
+                                .requestMatchers("/register").permitAll() // <--- ADDED THIS LINE (Registration HTML page via controller)
+                                // If you later add CSS/JS/images in src/main/resources/static/ or specific paths,
+                                // you might need to permit them too, e.g.:
+                                // .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                                .anyRequest().authenticated() // All other requests (mostly API calls) require authentication
                 );
 
         http.authenticationProvider(authenticationProvider());

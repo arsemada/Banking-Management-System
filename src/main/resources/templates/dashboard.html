@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banking Dashboard</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 20px;
+    }
+    .header h1 {
+        color: #333;
+        margin: 0;
+    }
+    .header button {
+        background-color: #dc3545; /* Red for logout, consider if you want this or blue */
+        background-color: #007bff; /* Consistent light blue */
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+    }
+    .header button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+    }
+    .section-container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+    .section-container h3 {
+        margin-top: 0;
+        color: #007bff; /* Light blue for section headers */
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group select {
+        width: calc(100% - 22px); /* Adjust for padding and border */
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    .form-group button {
+        background-color: #007bff; /* Light blue */
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+        width: 100%;
+    }
+    .form-group button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+    }
+    .message-success {
+        color: green;
+        margin-top: 10px;
+        text-align: center;
+    }
+    .message-error {
+        color: red;
+        margin-top: 10px;
+        text-align: center;
+    }
+    .account-list {
+        list-style: none;
+        padding: 0;
+    }
+    .account-list li {
+        background-color: #f9f9f9;
+        border: 1px solid #eee;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .account-list li span {
+        font-weight: bold;
+    }
+    .no-accounts {
+        text-align: center;
+        color: #777;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1 id="welcomeMessage">Welcome, User!</h1>
+  <button id="logoutButton">Logout</button>
+</div>
+
+<div class="section-container">
+  <h3>Create New Account</h3>
+  <form id="createAccountForm">
+    <div class="form-group">
+      <label for="accountType">Account Type:</label>
+      <select id="accountType" name="accountType" required>
+        <option value="">Select Type</option>
+        <option value="SAVINGS">Savings</option>
+        <option value="CHECKING">Checking</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="initialBalance">Initial Balance:</label>
+      <input type="number" id="initialBalance" name="initialBalance" step="0.01" min="0" value="0" required>
+    </div>
+    <div class="form-group">
+      <button type="submit">Create Account</button>
+    </div>
+    <div class="message-success" id="createAccountSuccessMessage"></div>
+    <div class="message-error" id="createAccountErrorMessage"></div>
+  </form>
+</div>
+
+<div class="section-container">
+  <h3>Your Accounts</h3>
+  <ul id="accountList" class="account-list">
+    <p class="no-accounts" id="noAccountsMessage">No accounts found. Create one above!</p>
+  </ul>
+  <div class="message-error" id="fetchAccountsErrorMessage"></div>
+</div>
+
+<script>
+  const backendUrl = 'http://localhost:8083';
+  const welcomeMessage = document.getElementById('welcomeMessage');
+  const logoutButton = document.getElementById('logoutButton');
+  const createAccountForm = document.getElementById('createAccountForm');
+  const createAccountSuccessMessageDiv = document.getElementById('createAccountSuccessMessage');
+  const createAccountErrorMessageDiv = document.getElementById('createAccountErrorMessage');
+  const accountList = document.getElementById('accountList');
+  const noAccountsMessage = document.getElementById('noAccountsMessage');
+  const fetchAccountsErrorMessageDiv = document.getElementById('fetchAccountsErrorMessage');
+
+  // --- Authentication Check and Welcome Message ---
+  document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('jwtToken');
+      const username = localStorage.getItem('username');
+
+      if (!token || !username) {
+          // If no token or username, redirect to login
+          alert('You are not logged in. Please log in first.');
+          window.location.href = '/login';
+          return; // Stop execution
+      }
+      welcomeMessage.textContent = `Welcome, ${username}!`;
+      fetchUserAccounts(); // Fetch accounts when dashboard loads
+  });
+
+  // --- Logout Functionality ---
+  logoutButton.addEventListener('click', () => {
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('username');
+      alert('Logged out successfully!');
+      window.location.href = '/login';
+  });
+
+  // --- Fetch User Accounts ---
+  async function fetchUserAccounts() {
+      fetchAccountsErrorMessageDiv.textContent = '';
+      accountList.innerHTML = ''; // Clear existing list
+      noAccountsMessage.style.display = 'none'; // Hide "No accounts" message initially
+
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+          fetchAccountsErrorMessageDiv.textContent = 'Authentication token missing. Please log in again.';
+          return;
+      }
+
+      try {
+          const response = await fetch(`${backendUrl}/api/accounts`, { // Assuming /api/accounts for fetching current user's accounts
+              method: 'GET',
+              headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+              }
+          });
+
+          if (response.ok) {
+              const accounts = await response.json();
+              if (accounts.length === 0) {
+                  noAccountsMessage.style.display = 'block';
+              } else {
+                  accounts.forEach(account => {
+                      const li = document.createElement('li');
+                      li.innerHTML = `
+                          <span>${account.accountType} Account (ID: ${account.id}):</span>
+                          <span>Balance: $${account.balance.toFixed(2)}</span>
+                      `;
+                      accountList.appendChild(li);
+                  });
+              }
+          } else if (response.status === 401) {
+              fetchAccountsErrorMessageDiv.textContent = 'Session expired or unauthorized. Please log in again.';
+              alert('Session expired or unauthorized. Please log in again.');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              window.location.href = '/login';
+          }
+          else {
+              const errorData = await response.json();
+              fetchAccountsErrorMessageDiv.textContent = errorData.message || 'Failed to fetch accounts.';
+              console.error('Failed to fetch accounts:', errorData);
+          }
+      } catch (error) {
+          console.error('Network error while fetching accounts:', error);
+          fetchAccountsErrorMessageDiv.textContent = 'A network error occurred while fetching accounts.';
+      }
+  }
+
+  // --- Create New Account Form Submission ---
+  createAccountForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      createAccountSuccessMessageDiv.textContent = '';
+      createAccountErrorMessageDiv.textContent = '';
+
+      const accountType = document.getElementById('accountType').value;
+      const initialBalance = parseFloat(document.getElementById('initialBalance').value);
+
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+          createAccountErrorMessageDiv.textContent = 'Authentication token missing. Please log in again.';
+          return;
+      }
+
+      try {
+          const response = await fetch(`${backendUrl}/api/accounts`, { // Assuming POST /api/accounts to create new account
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ accountType, balance: initialBalance }) // Ensure backend DTO matches
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+              createAccountSuccessMessageDiv.textContent = 'Account created successfully!';
+              createAccountForm.reset();
+              document.getElementById('initialBalance').value = '0'; // Reset balance to 0
+              fetchUserAccounts(); // Refresh the list of accounts
+          } else if (response.status === 401) {
+               createAccountErrorMessageDiv.textContent = 'Session expired or unauthorized. Please log in again.';
+               alert('Session expired or unauthorized. Please log in again.');
+               localStorage.removeItem('jwtToken');
+               localStorage.removeItem('username');
+               window.location.href = '/login';
+          }
+          else {
+              createAccountErrorMessageDiv.textContent = data.message || 'Failed to create account.';
+              console.error('Failed to create account:', data);
+          }
+      } catch (error) {
+          console.error('Network error during account creation:', error);
+          createAccountErrorMessageDiv.textContent = 'A network error occurred during account creation.';
+      }
+  });
+</script>
+</body>
+</html>
