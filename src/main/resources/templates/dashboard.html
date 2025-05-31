@@ -161,7 +161,7 @@
 
   // --- Authentication Check and Welcome Message ---
   document.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('jwtToken');
+      const token = localStorage.getItem('jwtToken'); // This should now correctly match
       const username = localStorage.getItem('username');
 
       if (!token || !username) {
@@ -191,6 +191,9 @@
       const token = localStorage.getItem('jwtToken');
       if (!token) {
           fetchAccountsErrorMessageDiv.textContent = 'Authentication token missing. Please log in again.';
+          // It's good to redirect here as well if the token somehow disappears
+          alert('Authentication token missing. Please log in again.');
+          window.location.href = '/login';
           return;
       }
 
@@ -210,14 +213,15 @@
               } else {
                   accounts.forEach(account => {
                       const li = document.createElement('li');
+                      // Using account.accountNumber as per backend model
                       li.innerHTML = `
-                          <span>${account.accountType} Account (ID: ${account.id}):</span>
+                          <span>${account.accountType} Account (Number: ${account.accountNumber}):</span>
                           <span>Balance: $${account.balance.toFixed(2)}</span>
                       `;
                       accountList.appendChild(li);
                   });
               }
-          } else if (response.status === 401) {
+          } else if (response.status === 401 || response.status === 403) {
               fetchAccountsErrorMessageDiv.textContent = 'Session expired or unauthorized. Please log in again.';
               alert('Session expired or unauthorized. Please log in again.');
               localStorage.removeItem('jwtToken');
@@ -247,17 +251,21 @@
       const token = localStorage.getItem('jwtToken');
       if (!token) {
           createAccountErrorMessageDiv.textContent = 'Authentication token missing. Please log in again.';
+          alert('Authentication token missing. Please log in again.');
+          window.location.href = '/login';
           return;
       }
 
       try {
-          const response = await fetch(`${backendUrl}/api/accounts`, { // Assuming POST /api/accounts to create new account
+          // Adjust endpoint if needed, e.g., if it's /api/accounts/create or similar
+          // Based on previous discussions, /api/accounts (POST) is for creation
+          const response = await fetch(`${backendUrl}/api/accounts`, {
               method: 'POST',
               headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ accountType, balance: initialBalance }) // Ensure backend DTO matches
+              body: JSON.stringify({ accountType, initialBalance }) // Ensure backend DTO matches (CreateAccountRequest)
           });
 
           const data = await response.json();
@@ -267,7 +275,7 @@
               createAccountForm.reset();
               document.getElementById('initialBalance').value = '0'; // Reset balance to 0
               fetchUserAccounts(); // Refresh the list of accounts
-          } else if (response.status === 401) {
+          } else if (response.status === 401 || response.status === 403) {
                createAccountErrorMessageDiv.textContent = 'Session expired or unauthorized. Please log in again.';
                alert('Session expired or unauthorized. Please log in again.');
                localStorage.removeItem('jwtToken');

@@ -62,9 +62,7 @@ public class WebSecurityConfig {
                                 .requestMatchers("/").permitAll() // Root path redirects to login
                                 .requestMatchers("/dashboard").permitAll() // <--- ADDED THIS LINE (Dashboard HTML page via controller)
                                 .requestMatchers("/register").permitAll() // <--- ADDED THIS LINE (Registration HTML page via controller)
-                                // If you later add CSS/JS/images in src/main/resources/static/ or specific paths,
-                                // you might need to permit them too, e.g.:
-                                // .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+
                                 .anyRequest().authenticated() // All other requests (mostly API calls) require authentication
                 );
 

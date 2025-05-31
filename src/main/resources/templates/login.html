@@ -119,13 +119,37 @@
 
           const data = await response.json();
 
+          // --- ADD THESE LOGS ---
+          console.log('Backend login response data:', data); // <-- IMPORTANT: Check this in browser console
+          console.log('Type of data.jwt:', typeof data.jwt, 'Value:', data.jwt);
+          console.log('Type of data.accessToken:', typeof data.accessToken, 'Value:', data.accessToken);
+          console.log('Type of data.token:', typeof data.token, 'Value:', data.token);
+          // --- END ADDED LOGS ---
+
           if (response.ok) {
-              console.log('Login successful:', data);
-              localStorage.setItem('jwtToken', data.jwt);
-              localStorage.setItem('username', data.username);
+              let tokenToStore = null;
+
+              // --- CRITICAL: Use the correct property name based on your backend response ---
+              if (data.accessToken) {
+                  tokenToStore = data.accessToken;
+                  console.log('Using accessToken from response.');
+              } else if (data.token) { // Some backends use 'token'
+                  tokenToStore = data.token;
+                  console.log('Using token from response.');
+              } else if (data.jwt) { // Your previous code used 'jwt'
+                  tokenToStore = data.jwt;
+                  console.log('Using jwt from response.');
+              } else {
+                  console.error('No JWT token found in response (accessToken, token, or jwt). Please check backend AuthResponse DTO.');
+                  errorMessageDiv.textContent = 'Login successful, but no token received from server. Contact support.';
+                  return; // Stop here if no token is found
+              }
+
+              localStorage.setItem('jwtToken', tokenToStore); // Store it consistently as 'jwtToken'
+              localStorage.setItem('username', data.username); // Assuming username is also in the response
 
               alert('Login successful! Redirecting to dashboard...');
-              window.location.href = '/dashboard'; // Redirect to the clean dashboard URL
+              window.location.href = '/dashboard';
           } else {
               console.error('Login failed:', data);
               errorMessageDiv.textContent = data.message || 'Login failed. Please check your credentials.';

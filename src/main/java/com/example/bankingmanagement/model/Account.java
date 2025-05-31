@@ -1,70 +1,39 @@
 package com.example.bankingmanagement.model;
 
-import com.example.bankingmanagement.model.AccountStatus;
-import com.example.bankingmanagement.model.AccountType;
-import com.example.bankingmanagement.model.User;
+import com.fasterxml.jackson.annotation.JsonBackReference; // For handling bidirectional relationships
+
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Represents a bank account in the system.
- */
 @Entity
-@Table(name = "accounts",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "account_number")
-        })
+@Table(name = "accounts")
 public class Account {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Column(name = "account_number", unique = true, nullable = false)
+    @Column(unique = true, nullable = false)
     private String accountNumber;
 
-    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccountType accountType;
 
-    @NotNull
-    @PositiveOrZero
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2) // Recommended for currency
     private BigDecimal balance;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AccountStatus status;
-
-    @NotNull
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    // Many-to-one relationship with User
+    @ManyToOne(fetch = FetchType.LAZY) // Eager fetch if you always need the user, but Lazy is generally better
+    @JoinColumn(name = "user_id", nullable = false) // Foreign key column
+    @JsonBackReference // Prevents infinite recursion in JSON serialization
     private User user;
 
-    // Default constructor for JPA
-    public Account() {
-    }
-
-    public Account(String accountNumber, AccountType accountType, BigDecimal balance, AccountStatus status, User user) {
-        this.accountNumber = accountNumber;
-        this.accountType = accountType;
-        this.balance = balance;
-        this.status = status;
-        this.user = user;
-        this.createdAt = LocalDateTime.now();
-    }
-
     // Getters and Setters
+
     public Long getId() {
         return id;
     }
@@ -95,14 +64,6 @@ public class Account {
 
     public void setBalance(BigDecimal balance) {
         this.balance = balance;
-    }
-
-    public AccountStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(AccountStatus status) {
-        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {
