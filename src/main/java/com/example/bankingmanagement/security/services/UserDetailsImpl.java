@@ -33,8 +33,9 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(User user) {
+        // This is the corrected line for extracting roles
         List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.name()))
+                .map(role -> new SimpleGrantedAuthority(role.getName().name())) // Corrected: role.getName().name()
                 .collect(Collectors.toList());
 
         return new UserDetailsImpl(

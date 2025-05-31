@@ -18,8 +18,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity
-public class WebSecurityConfig { // Or SecurityConfig
+@EnableMethodSecurity // Enables @PreAuthorize, @PostAuthorize, @HasRole, @Secured annotations
+public class WebSecurityConfig {
 
     @Autowired
     UserDetailsServiceImpl userDetailsService;
@@ -52,14 +52,16 @@ public class WebSecurityConfig { // Or SecurityConfig
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        http.csrf(csrf -> csrf.disable()) // Disable CSRF as we are stateless (JWT based)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler)) // Handle unauthorized access
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Use stateless sessions
                 .authorizeHttpRequests(auth ->
-                        // This pattern is correct for /auth/signup and /auth/signin
+                        // Permit access to authentication endpoints
                         auth.requestMatchers("/auth/**").permitAll()
-
-                                .anyRequest().authenticated() // All other requests now require authentication
+                                // Permit access to test public endpoint
+                                .requestMatchers("/api/test/all").permitAll()
+                                // All other requests require authentication
+                                .anyRequest().authenticated()
                 );
 
         http.authenticationProvider(authenticationProvider());
