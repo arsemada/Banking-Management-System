@@ -1,11 +1,13 @@
 package com.example.bankingmanagement.controller;
 
+import com.example.bankingmanagement.exception.ResourceNotFoundException;
 import com.example.bankingmanagement.model.Account;
 import com.example.bankingmanagement.model.AccountType;
 import com.example.bankingmanagement.payload.request.CreateAccountRequest;
+import com.example.bankingmanagement.payload.request.TransactionRequest; // Import the new DTO
 import com.example.bankingmanagement.payload.response.MessageResponse;
 import com.example.bankingmanagement.service.AccountService;
-import jakarta.validation.Valid; // For @Valid annotation
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,15 +26,6 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    /**
-     * Endpoint to create a new bank account for the authenticated user.
-     * Accessible by customers (their own accounts) and staff/admins.
-     * Expects a JSON request body containing accountType and initialBalance.
-     * POST /api/accounts
-     * @param request The DTO containing account type and initial balance.
-     * @param principal The authenticated user's principal.
-     * @return ResponseEntity with the created Account or an error message.
-     */
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> createAccount(@Valid @RequestBody CreateAccountRequest request, Principal principal) {
@@ -49,16 +42,9 @@ public class AccountController {
         }
     }
 
-    /**
-     * Endpoint to get all accounts for the authenticated user.
-     * Accessible by customers (their own accounts) and staff/admins.
-     * GET /api/accounts
-     * @param principal The authenticated user's principal.
-     * @return ResponseEntity with a list of accounts or an error message.
-     */
     @GetMapping
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
-    public ResponseEntity<?> getMyAccounts(Principal principal) { // Added Principal to get the current user
+    public ResponseEntity<?> getMyAccounts(Principal principal) {
         try {
             List<Account> accounts = accountService.getMyAccounts(principal.getName());
             return ResponseEntity.ok(accounts);
@@ -69,14 +55,6 @@ public class AccountController {
         }
     }
 
-    /**
-     * Endpoint to get a specific account by its ID, ensuring it belongs to the authenticated user.
-     * Accessible by customers (their own specific account) and staff/admins (any specific account, if allowed by future logic).
-     * GET /api/accounts/{accountId}
-     * @param accountId The ID of the account to retrieve.
-     * @param principal The authenticated user's principal.
-     * @return ResponseEntity with the Account details or an error message.
-     */
     @GetMapping("/{accountId}")
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> getAccountById(@PathVariable Long accountId, Principal principal) {
@@ -93,4 +71,39 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error retrieving account: " + e.getMessage()));
         }
     }
+
+    // --- NEW ENDPOINT FOR DEPOSIT ---
+    @PostMapping("/{accountId}/deposit")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> deposit(
+            @PathVariable Long accountId,
+            @Valid @RequestBody TransactionRequest request,
+            Principal principal) {
+        try {
+            Account updatedAccount = accountService.deposit(principal.getName(), accountId, request.getAmount());
+            return ResponseEntity.ok(updatedAccount); // Return updated account details
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during deposit: " + e.getMessage()));
+        }
+    }
+
+    // --- NEW ENDPOINT FOR WITHDRAWAL ---
+    @PostMapping("/{accountId}/withdraw")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> withdraw(
+            @PathVariable Long accountId,
+            @Valid @RequestBody TransactionRequest request,
+            Principal principal) {
+        try {
+            Account updatedAccount = accountService.withdraw(principal.getName(), accountId, request.getAmount());
+            return ResponseEntity.ok(updatedAccount); // Return updated account details
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during withdrawal: " + e.getMessage()));
+        }
+    }
+    // --- END NEW ENDPOINTS ---
 }

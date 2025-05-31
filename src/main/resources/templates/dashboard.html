@@ -3,30 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Banking Dashboard</title>
+  <title>Dashboard</title>
   <style>
     body {
         font-family: Arial, sans-serif;
+        margin: 20px;
         background-color: #f4f4f4;
-        margin: 0;
-        padding: 20px;
         color: #333;
+    }
+    .container {
+        max-width: 800px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 {
+        color: #0056b3;
     }
     .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #ddd;
         margin-bottom: 20px;
     }
-    .header h1 {
-        color: #333;
-        margin: 0;
-    }
-    .header button {
-        background-color: #dc3545; /* Red for logout, consider if you want this or blue */
-        background-color: #007bff; /* Consistent light blue */
+    .logout-button {
+        background-color: #dc3545;
         color: white;
         padding: 8px 15px;
         border: none;
@@ -34,19 +37,8 @@
         cursor: pointer;
         font-size: 1em;
     }
-    .header button:hover {
-        background-color: #0056b3; /* Darker blue on hover */
-    }
-    .section-container {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-    }
-    .section-container h3 {
-        margin-top: 0;
-        color: #007bff; /* Light blue for section headers */
+    .logout-button:hover {
+        background-color: #c82333;
     }
     .form-group {
         margin-bottom: 15px;
@@ -54,98 +46,135 @@
     .form-group label {
         display: block;
         margin-bottom: 5px;
-        color: #555;
+        font-weight: bold;
     }
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group select {
-        width: calc(100% - 22px); /* Adjust for padding and border */
+    .form-group select, .form-group input[type="text"], .form-group input[type="number"] {
+        width: 100%;
         padding: 10px;
         border: 1px solid #ddd;
         border-radius: 4px;
-        box-sizing: border-box;
+        box-sizing: border-box; /* Ensures padding doesn't increase width */
     }
-    .form-group button {
-        background-color: #007bff; /* Light blue */
+    .btn {
+        background-color: #007bff;
         color: white;
-        padding: 10px 15px;
+        padding: 10px 20px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         font-size: 1em;
-        width: 100%;
     }
-    .form-group button:hover {
-        background-color: #0056b3; /* Darker blue on hover */
+    .btn:hover {
+        background-color: #0056b3;
     }
-    .message-success {
-        color: green;
-        margin-top: 10px;
-        text-align: center;
+    .message {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 4px;
     }
-    .message-error {
-        color: red;
-        margin-top: 10px;
-        text-align: center;
+    .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
     }
     .account-list {
         list-style: none;
         padding: 0;
     }
-    .account-list li {
-        background-color: #f9f9f9;
-        border: 1px solid #eee;
-        padding: 10px;
-        margin-bottom: 8px;
+    .account-item {
+        background-color: #e9ecef;
+        padding: 10px 15px;
+        margin-bottom: 10px;
         border-radius: 4px;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    .account-list li span {
-        font-weight: bold;
-    }
-    .no-accounts {
-        text-align: center;
-        color: #777;
+    .account-item strong {
+        color: #0056b3;
     }
   </style>
 </head>
 <body>
-<div class="header">
-  <h1 id="welcomeMessage">Welcome, User!</h1>
-  <button id="logoutButton">Logout</button>
-</div>
+<div class="container">
+  <div class="header">
+    <h1 id="welcomeMessage">Welcome, !</h1>
+    <button class="logout-button" id="logoutButton">Logout</button>
+  </div>
 
-<div class="section-container">
-  <h3>Create New Account</h3>
-  <form id="createAccountForm">
-    <div class="form-group">
-      <label for="accountType">Account Type:</label>
-      <select id="accountType" name="accountType" required>
-        <option value="">Select Type</option>
-        <option value="SAVINGS">Savings</option>
-        <option value="CHECKING">Checking</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="initialBalance">Initial Balance:</label>
-      <input type="number" id="initialBalance" name="initialBalance" step="0.01" min="0" value="0" required>
-    </div>
-    <div class="form-group">
-      <button type="submit">Create Account</button>
-    </div>
-    <div class="message-success" id="createAccountSuccessMessage"></div>
-    <div class="message-error" id="createAccountErrorMessage"></div>
-  </form>
-</div>
+  <div id="dashboardContent">
+    <h2>Create New Account</h2>
+    <form id="createAccountForm">
+      <div class="form-group">
+        <label for="accountType">Account Type:</label>
+        <select id="accountType" name="accountType" required>
+          <option value="">Select Type</option>
+          <option value="SAVINGS">Savings</option>
+          <option value="CHECKING">Checking</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="initialBalance">Initial Balance:</label>
+        <input type="number" id="initialBalance" name="initialBalance" step="0.01" value="0.00" required>
+      </div>
+      <button type="submit" class="btn">Create Account</button>
+      <div id="createAccountMessage" class="message"></div>
+    </form>
 
-<div class="section-container">
-  <h3>Your Accounts</h3>
-  <ul id="accountList" class="account-list">
-    <p class="no-accounts" id="noAccountsMessage">No accounts found. Create one above!</p>
-  </ul>
-  <div class="message-error" id="fetchAccountsErrorMessage"></div>
+    <hr style="margin: 30px 0;">
+
+    <h2>Your Accounts</h2>
+    <ul id="accountsList" class="account-list">
+    </ul>
+    <div id="accountsMessage" class="message"></div>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Deposit Funds</h2>
+    <form id="depositForm">
+      <div class="form-group">
+        <label for="depositAccountId">Select Account:</label>
+        <select id="depositAccountId" required>
+          <option value="">Loading accounts...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="depositAmount">Amount:</label>
+        <input type="number" id="depositAmount" step="0.01" min="0.01" required>
+      </div>
+      <button type="submit" class="btn">Deposit</button>
+      <div id="depositMessage" class="message"></div>
+    </form>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>Withdraw Funds</h2>
+    <form id="withdrawForm">
+      <div class="form-group">
+        <label for="withdrawAccountId">Select Account:</label>
+        <select id="withdrawAccountId" required>
+          <option value="">Loading accounts...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="withdrawAmount">Amount:</label>
+        <input type="number" id="withdrawAmount" step="0.01" min="0.01" required>
+      </div>
+      <button type="submit" class="btn">Withdraw</button>
+      <div id="withdrawMessage" class="message"></div>
+    </form>
+
+    <hr style="margin: 30px 0;">
+
+    <h3>Recent Transactions (Coming Soon)</h3>
+    <div id="transactionsList"></div>
+
+  </div>
 </div>
 
 <script>
@@ -153,55 +182,71 @@
   const welcomeMessage = document.getElementById('welcomeMessage');
   const logoutButton = document.getElementById('logoutButton');
   const createAccountForm = document.getElementById('createAccountForm');
-  const createAccountSuccessMessageDiv = document.getElementById('createAccountSuccessMessage');
-  const createAccountErrorMessageDiv = document.getElementById('createAccountErrorMessage');
-  const accountList = document.getElementById('accountList');
-  const noAccountsMessage = document.getElementById('noAccountsMessage');
-  const fetchAccountsErrorMessageDiv = document.getElementById('fetchAccountsErrorMessage');
+  const createAccountMessage = document.getElementById('createAccountMessage');
+  const accountsList = document.getElementById('accountsList');
+  const accountsMessage = document.getElementById('accountsMessage');
 
-  // --- Authentication Check and Welcome Message ---
+  // New elements for Deposit/Withdrawal
+  const depositForm = document.getElementById('depositForm');
+  const depositAccountIdSelect = document.getElementById('depositAccountId');
+  const depositAmountInput = document.getElementById('depositAmount');
+  const depositMessage = document.getElementById('depositMessage');
+
+  const withdrawForm = document.getElementById('withdrawForm');
+  const withdrawAccountIdSelect = document.getElementById('withdrawAccountId');
+  const withdrawAmountInput = document.getElementById('withdrawAmount');
+  const withdrawMessage = document.getElementById('withdrawMessage');
+
+
+  // --- Authentication Check and Page Setup ---
   document.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('jwtToken'); // This should now correctly match
       const username = localStorage.getItem('username');
+      const jwtToken = localStorage.getItem('jwtToken');
 
-      if (!token || !username) {
-          // If no token or username, redirect to login
-          alert('You are not logged in. Please log in first.');
-          window.location.href = '/login';
-          return; // Stop execution
-      }
-      welcomeMessage.textContent = `Welcome, ${username}!`;
-      fetchUserAccounts(); // Fetch accounts when dashboard loads
-  });
-
-  // --- Logout Functionality ---
-  logoutButton.addEventListener('click', () => {
-      localStorage.removeItem('jwtToken');
-      localStorage.removeItem('username');
-      alert('Logged out successfully!');
-      window.location.href = '/login';
-  });
-
-  // --- Fetch User Accounts ---
-  async function fetchUserAccounts() {
-      fetchAccountsErrorMessageDiv.textContent = '';
-      accountList.innerHTML = ''; // Clear existing list
-      noAccountsMessage.style.display = 'none'; // Hide "No accounts" message initially
-
-      const token = localStorage.getItem('jwtToken');
-      if (!token) {
-          fetchAccountsErrorMessageDiv.textContent = 'Authentication token missing. Please log in again.';
-          // It's good to redirect here as well if the token somehow disappears
-          alert('Authentication token missing. Please log in again.');
+      if (!jwtToken || !username) {
+          alert('Session expired or unauthorized. Please log in again.');
           window.location.href = '/login';
           return;
       }
 
+      welcomeMessage.textContent = `Welcome, ${username}!`;
+      fetchAccounts(); // Load accounts when dashboard loads
+  });
+
+  logoutButton.addEventListener('click', () => {
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('username');
+      window.location.href = '/login';
+  });
+
+  // --- Helper function to display messages ---
+  function displayMessage(element, message, type) {
+      element.textContent = message;
+      element.className = `message ${type}`;
+      setTimeout(() => {
+          element.textContent = '';
+          element.className = 'message';
+      }, 5000); // Clear message after 5 seconds
+  }
+
+  // --- Fetch Accounts Function ---
+  async function fetchAccounts() {
+      accountsList.innerHTML = ''; // Clear previous accounts
+      accountsMessage.textContent = '';
+      depositAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>';
+      withdrawAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>';
+
+      const jwtToken = localStorage.getItem('jwtToken');
+      if (!jwtToken) {
+          displayMessage(accountsMessage, 'Authentication token missing. Please log in.', 'error');
+          return;
+      }
+
       try {
-          const response = await fetch(`${backendUrl}/api/accounts`, { // Assuming /api/accounts for fetching current user's accounts
+          const response = await fetch(`${backendUrl}/api/accounts`, {
               method: 'GET',
               headers: {
-                  'Authorization': `Bearer ${token}`,
+                  'Authorization': `Bearer ${jwtToken}`,
                   'Content-Type': 'application/json'
               }
           });
@@ -209,88 +254,219 @@
           if (response.ok) {
               const accounts = await response.json();
               if (accounts.length === 0) {
-                  noAccountsMessage.style.display = 'block';
+                  displayMessage(accountsMessage, 'You have no accounts yet. Create one above!', 'info');
+                  // Clear and populate dropdowns with default option
+                  depositAccountIdSelect.innerHTML = '<option value="">No accounts available</option>';
+                  withdrawAccountIdSelect.innerHTML = '<option value="">No accounts available</option>';
               } else {
                   accounts.forEach(account => {
                       const li = document.createElement('li');
-                      // Using account.accountNumber as per backend model
+                      li.className = 'account-item';
                       li.innerHTML = `
-                          <span>${account.accountType} Account (Number: ${account.accountNumber}):</span>
-                          <span>Balance: $${account.balance.toFixed(2)}</span>
+                          <div>
+                              <strong>${account.accountType} Account (Number: ${account.accountNumber}):</strong><br>
+                              Balance: $${parseFloat(account.balance).toFixed(2)}
+                          </div>
                       `;
-                      accountList.appendChild(li);
+                      accountsList.appendChild(li);
+
+                      // Populate deposit and withdrawal dropdowns
+                      const option = document.createElement('option');
+                      option.value = account.id; // Use account ID as the value
+                      option.textContent = `${account.accountType} (${account.accountNumber}) - $${parseFloat(account.balance).toFixed(2)}`;
+                      depositAccountIdSelect.appendChild(option.cloneNode(true)); // Clone for deposit
+                      withdrawAccountIdSelect.appendChild(option); // Add to withdraw (original node)
                   });
+                  // Add default "Select Account" option to dropdowns after accounts are loaded
+                  const defaultOptionDeposit = document.createElement('option');
+                  defaultOptionDeposit.value = "";
+                  defaultOptionDeposit.textContent = "Select Account";
+                  defaultOptionDeposit.selected = true;
+                  defaultOptionDeposit.disabled = true;
+                  depositAccountIdSelect.prepend(defaultOptionDeposit);
+
+                  const defaultOptionWithdraw = document.createElement('option');
+                  defaultOptionWithdraw.value = "";
+                  defaultOptionWithdraw.textContent = "Select Account";
+                  defaultOptionWithdraw.selected = true;
+                  defaultOptionWithdraw.disabled = true;
+                  withdrawAccountIdSelect.prepend(defaultOptionWithdraw);
               }
-          } else if (response.status === 401 || response.status === 403) {
-              fetchAccountsErrorMessageDiv.textContent = 'Session expired or unauthorized. Please log in again.';
-              alert('Session expired or unauthorized. Please log in again.');
+          } else if (response.status === 401) {
+              displayMessage(accountsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
-              window.location.href = '/login';
-          }
-          else {
+              setTimeout(() => window.location.href = '/login', 1500);
+          } else {
               const errorData = await response.json();
-              fetchAccountsErrorMessageDiv.textContent = errorData.message || 'Failed to fetch accounts.';
-              console.error('Failed to fetch accounts:', errorData);
+              displayMessage(accountsMessage, `Error fetching accounts: ${errorData.message || response.statusText}`, 'error');
           }
       } catch (error) {
-          console.error('Network error while fetching accounts:', error);
-          fetchAccountsErrorMessageDiv.textContent = 'A network error occurred while fetching accounts.';
+          console.error('Error fetching accounts:', error);
+          displayMessage(accountsMessage, 'Network error or unable to connect to server.', 'error');
       }
   }
 
-  // --- Create New Account Form Submission ---
+  // --- Create Account Form Submission ---
   createAccountForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      createAccountSuccessMessageDiv.textContent = '';
-      createAccountErrorMessageDiv.textContent = '';
+      createAccountMessage.textContent = ''; // Clear previous messages
 
       const accountType = document.getElementById('accountType').value;
       const initialBalance = parseFloat(document.getElementById('initialBalance').value);
 
-      const token = localStorage.getItem('jwtToken');
-      if (!token) {
-          createAccountErrorMessageDiv.textContent = 'Authentication token missing. Please log in again.';
-          alert('Authentication token missing. Please log in again.');
-          window.location.href = '/login';
+      if (!accountType) {
+          displayMessage(createAccountMessage, 'Please select an account type.', 'error');
+          return;
+      }
+      if (isNaN(initialBalance) || initialBalance < 0) {
+          displayMessage(createAccountMessage, 'Please enter a valid positive initial balance.', 'error');
+          return;
+      }
+
+      const jwtToken = localStorage.getItem('jwtToken');
+      if (!jwtToken) {
+          displayMessage(createAccountMessage, 'Authentication token missing. Please log in.', 'error');
           return;
       }
 
       try {
-          // Adjust endpoint if needed, e.g., if it's /api/accounts/create or similar
-          // Based on previous discussions, /api/accounts (POST) is for creation
           const response = await fetch(`${backendUrl}/api/accounts`, {
               method: 'POST',
               headers: {
-                  'Authorization': `Bearer ${token}`,
+                  'Authorization': `Bearer ${jwtToken}`,
                   'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ accountType, initialBalance }) // Ensure backend DTO matches (CreateAccountRequest)
+              body: JSON.stringify({ accountType, initialBalance })
           });
 
-          const data = await response.json();
-
           if (response.ok) {
-              createAccountSuccessMessageDiv.textContent = 'Account created successfully!';
-              createAccountForm.reset();
-              document.getElementById('initialBalance').value = '0'; // Reset balance to 0
-              fetchUserAccounts(); // Refresh the list of accounts
-          } else if (response.status === 401 || response.status === 403) {
-               createAccountErrorMessageDiv.textContent = 'Session expired or unauthorized. Please log in again.';
-               alert('Session expired or unauthorized. Please log in again.');
-               localStorage.removeItem('jwtToken');
-               localStorage.removeItem('username');
-               window.location.href = '/login';
+              const newAccount = await response.json();
+              displayMessage(createAccountMessage, `Account created successfully! ${newAccount.accountType} (${newAccount.accountNumber})`, 'success');
+              createAccountForm.reset(); // Clear form
+              fetchAccounts(); // Refresh the list of accounts
+          } else if (response.status === 401) {
+              displayMessage(createAccountMessage, 'Session expired or unauthorized. Please log in again.', 'error');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              setTimeout(() => window.location.href = '/login', 1500);
           }
           else {
-              createAccountErrorMessageDiv.textContent = data.message || 'Failed to create account.';
-              console.error('Failed to create account:', data);
+              const errorData = await response.json();
+              displayMessage(createAccountMessage, `Error creating account: ${errorData.message || response.statusText}`, 'error');
           }
       } catch (error) {
-          console.error('Network error during account creation:', error);
-          createAccountErrorMessageDiv.textContent = 'A network error occurred during account creation.';
+          console.error('Error creating account:', error);
+          displayMessage(createAccountMessage, 'Network error or unable to connect to server.', 'error');
       }
   });
+
+  // --- Deposit Form Submission ---
+  depositForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      depositMessage.textContent = '';
+
+      const accountId = depositAccountIdSelect.value;
+      const amount = parseFloat(depositAmountInput.value);
+
+      if (!accountId) {
+          displayMessage(depositMessage, 'Please select an account.', 'error');
+          return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+          displayMessage(depositMessage, 'Please enter a positive amount to deposit.', 'error');
+          return;
+      }
+
+      const jwtToken = localStorage.getItem('jwtToken');
+      if (!jwtToken) {
+          displayMessage(depositMessage, 'Authentication token missing. Please log in.', 'error');
+          return;
+      }
+
+      try {
+          const response = await fetch(`${backendUrl}/api/accounts/${accountId}/deposit`, {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ amount })
+          });
+
+          if (response.ok) {
+              const updatedAccount = await response.json();
+              displayMessage(depositMessage, `Deposit of $${amount.toFixed(2)} successful to ${updatedAccount.accountNumber}! New balance: $${parseFloat(updatedAccount.balance).toFixed(2)}`, 'success');
+              depositForm.reset();
+              fetchAccounts(); // Refresh account list and balances
+          } else if (response.status === 401) {
+              displayMessage(depositMessage, 'Session expired or unauthorized. Please log in again.', 'error');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              setTimeout(() => window.location.href = '/login', 1500);
+          } else {
+              const errorData = await response.json();
+              displayMessage(depositMessage, `Deposit failed: ${errorData.message || response.statusText}`, 'error');
+          }
+      } catch (error) {
+          console.error('Error during deposit:', error);
+          displayMessage(depositMessage, 'Network error or unable to connect to server.', 'error');
+      }
+  });
+
+  // --- Withdrawal Form Submission ---
+  withdrawForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      withdrawMessage.textContent = '';
+
+      const accountId = withdrawAccountIdSelect.value;
+      const amount = parseFloat(withdrawAmountInput.value);
+
+      if (!accountId) {
+          displayMessage(withdrawMessage, 'Please select an account.', 'error');
+          return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+          displayMessage(withdrawMessage, 'Please enter a positive amount to withdraw.', 'error');
+          return;
+      }
+
+      const jwtToken = localStorage.getItem('jwtToken');
+      if (!jwtToken) {
+          displayMessage(withdrawMessage, 'Authentication token missing. Please log in.', 'error');
+          return;
+      }
+
+      try {
+          const response = await fetch(`${backendUrl}/api/accounts/${accountId}/withdraw`, {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ amount })
+          });
+
+          if (response.ok) {
+              const updatedAccount = await response.json();
+              displayMessage(withdrawMessage, `Withdrawal of $${amount.toFixed(2)} successful from ${updatedAccount.accountNumber}! New balance: $${parseFloat(updatedAccount.balance).toFixed(2)}`, 'success');
+              withdrawForm.reset();
+              fetchAccounts(); // Refresh account list and balances
+          } else if (response.status === 401) {
+              displayMessage(withdrawMessage, 'Session expired or unauthorized. Please log in again.', 'error');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              setTimeout(() => window.location.href = '/login', 1500);
+          } else {
+              const errorData = await response.json();
+              displayMessage(withdrawMessage, `Withdrawal failed: ${errorData.message || response.statusText}`, 'error');
+          }
+      } catch (error) {
+          console.error('Error during withdrawal:', error);
+          displayMessage(withdrawMessage, 'Network error or unable to connect to server.', 'error');
+      }
+  });
+
 </script>
 </body>
 </html>
