@@ -5,23 +5,32 @@ This system allows customers to manage accounts, transfer funds, and view transa
 
 <details>
 <summary>User Roles</summary>
-- **Customer**: Register/Login, manage accounts, transfer funds, view transactions  
-- **Bank Staff**: Approve accounts, manage customers, freeze/unfreeze accounts  
-- **Admin**: Full system control, manage staff, access audit logs  
+
+- <b>Customer</b>: Register/Login, manage accounts, transfer funds, view transactions  
+- <b>Bank Staff</b>: Approve accounts, manage customers, freeze/unfreeze accounts  
+- <b>Admin</b>: Full system control, manage staff, access audit logs  
+
 </details>
+
 <details>
 <summary>Core Modules</summary>
-- **Authentication**: JWT, role-based access, password encryption  
-- **Account Management**: Create/manage savings/current accounts  
-- **Transactions**: Deposit, Withdraw, Transfer, view history  
-- **Admin Tools**: User & account management, audit logs  
+
+- <b>Authentication</b>: JWT, role-based access, password encryption  
+- <b>Account Management</b>: Create/manage savings/current accounts  
+- <b>Transactions</b>: Deposit, Withdraw, Transfer, view history  
+- <b>Admin Tools</b>: User & account management, audit logs  
+
 </details>
+
 <details>
 <summary>Tech Stack</summary>
+
 - Spring Boot (Web, Security, JPA)  
 - PostgreSQL / MySQL  
 - Hibernate  
 - JWT Auth  
 - Docker & Docker Compose  
 - Swagger for API Docs  
+
 </details>
+
