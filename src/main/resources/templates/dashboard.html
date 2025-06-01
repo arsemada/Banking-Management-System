@@ -82,6 +82,11 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
     }
+    .info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
     .account-list {
         list-style: none;
         padding: 0;
@@ -193,8 +198,19 @@
 
     <hr style="margin: 30px 0;">
 
-    <h3>Recent Transactions (Coming Soon)</h3>
-    <div id="transactionsList"></div>
+    <h2>Account Transaction History</h2>
+    <div class="form-group">
+      <label for="transactionAccountId">Select Account:</label>
+      <select id="transactionAccountId" required>
+        <option value="">Loading accounts...</option>
+      </select>
+    </div>
+    <button class="btn" id="viewTransactionsButton">View Transactions</button>
+    <div id="transactionsMessage" class="message" style="margin-top: 15px;"></div>
+    <div id="transactionsListContainer">
+      <ul id="transactionsList" class="account-list" style="margin-top: 20px;">
+      </ul>
+    </div>
 
   </div>
 </div>
@@ -220,12 +236,18 @@
   const withdrawAmountInput = document.getElementById('withdrawAmount');
   const withdrawMessage = document.getElementById('withdrawMessage');
 
-  // New elements for Transfer
+  // Elements for Transfer
   const transferForm = document.getElementById('transferForm');
   const fromAccountIdSelect = document.getElementById('fromAccountId');
   const toAccountNumberInput = document.getElementById('toAccountNumber');
   const transferAmountInput = document.getElementById('transferAmount');
   const transferMessage = document.getElementById('transferMessage');
+
+  // New elements for Transactions
+  const transactionAccountIdSelect = document.getElementById('transactionAccountId');
+  const viewTransactionsButton = document.getElementById('viewTransactionsButton');
+  const transactionsList = document.getElementById('transactionsList');
+  const transactionsMessage = document.getElementById('transactionsMessage');
 
 
   // --- Authentication Check and Page Setup ---
@@ -265,9 +287,10 @@
       accountsMessage.textContent = '';
 
       // Clear and reset dropdowns for accounts (for all forms)
-      depositAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>';
-      withdrawAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>';
-      fromAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>'; // For transfer form
+      depositAccountIdSelect.innerHTML = '';
+      withdrawAccountIdSelect.innerHTML = '';
+      fromAccountIdSelect.innerHTML = '';
+      transactionAccountIdSelect.innerHTML = ''; // For transaction history form
 
       const jwtToken = localStorage.getItem('jwtToken');
       if (!jwtToken) {
@@ -286,18 +309,35 @@
 
           if (response.ok) {
               const accounts = await response.json();
+
+              // Add default "Select Account" option first for all dropdowns
+              const defaultOptionText = "Select Account";
+              const defaultOptionValue = "";
+              const defaultOptionSelected = true;
+              const defaultOptionDisabled = true;
+
+              const createAndAppendDefaultOption = (selectElement) => {
+                  const defaultOption = document.createElement('option');
+                  defaultOption.value = defaultOptionValue;
+                  defaultOption.textContent = defaultOptionText;
+                  defaultOption.selected = defaultOptionSelected;
+                  defaultOption.disabled = defaultOptionDisabled;
+                  selectElement.appendChild(defaultOption);
+              };
+
+              createAndAppendDefaultOption(depositAccountIdSelect);
+              createAndAppendDefaultOption(withdrawAccountIdSelect);
+              createAndAppendDefaultOption(fromAccountIdSelect);
+              createAndAppendDefaultOption(transactionAccountIdSelect); // For transaction history
+
               if (accounts.length === 0) {
                   displayMessage(accountsMessage, 'You have no accounts yet. Create one above!', 'info');
-                  // Clear and populate dropdowns with default "No accounts" option
-                  depositAccountIdSelect.innerHTML = '<option value="">No accounts available</option>';
-                  withdrawAccountIdSelect.innerHTML = '<option value="">No accounts available</option>';
-                  fromAccountIdSelect.innerHTML = '<option value="">No accounts available</option>'; // For transfer form
+                  // Update message for dropdowns if no accounts
+                  depositAccountIdSelect.querySelector('option').textContent = "No accounts available";
+                  withdrawAccountIdSelect.querySelector('option').textContent = "No accounts available";
+                  fromAccountIdSelect.querySelector('option').textContent = "No accounts available";
+                  transactionAccountIdSelect.querySelector('option').textContent = "No accounts available";
               } else {
-                  // Temporary arrays to hold options before adding default prepended options
-                  const depositOptions = [];
-                  const withdrawOptions = [];
-                  const transferFromOptions = [];
-
                   accounts.forEach(account => {
                       const li = document.createElement('li');
                       li.className = 'account-item';
@@ -309,32 +349,21 @@
                       `;
                       accountsList.appendChild(li);
 
-                      const option = document.createElement('option');
-                      option.value = account.id; // Use account ID as the value
-                      option.textContent = `${account.accountType} (${account.accountNumber}) - $${parseFloat(account.balance).toFixed(2)}`;
+                      // Create and append options to all relevant dropdowns
+                      const optionHtml = `${account.accountType} (${account.accountNumber}) - $${parseFloat(account.balance).toFixed(2)}`;
 
-                      // Push clones to temporary arrays
-                      depositOptions.push(option.cloneNode(true));
-                      withdrawOptions.push(option.cloneNode(true));
-                      transferFromOptions.push(option.cloneNode(true));
+                      const createAndAppendOption = (selectElement) => {
+                          const option = document.createElement('option');
+                          option.value = account.id;
+                          option.textContent = optionHtml;
+                          selectElement.appendChild(option);
+                      };
+
+                      createAndAppendOption(depositAccountIdSelect);
+                      createAndAppendOption(withdrawAccountIdSelect);
+                      createAndAppendOption(fromAccountIdSelect);
+                      createAndAppendOption(transactionAccountIdSelect); // For transaction history
                   });
-
-                  // Add default "Select Account" option and then append real options
-                  const defaultDepositOption = document.createElement('option');
-                  defaultDepositOption.value = ""; defaultDepositOption.textContent = "Select Account"; defaultDepositOption.selected = true; defaultDepositOption.disabled = true;
-                  depositAccountIdSelect.appendChild(defaultDepositOption);
-                  depositOptions.forEach(opt => depositAccountIdSelect.appendChild(opt));
-
-                  const defaultWithdrawOption = document.createElement('option');
-                  defaultWithdrawOption.value = ""; defaultWithdrawOption.textContent = "Select Account"; defaultWithdrawOption.selected = true; defaultWithdrawOption.disabled = true;
-                  withdrawAccountIdSelect.appendChild(defaultWithdrawOption);
-                  withdrawOptions.forEach(opt => withdrawAccountIdSelect.appendChild(opt));
-
-                  const defaultTransferFromOption = document.createElement('option');
-                  defaultTransferFromOption.value = ""; defaultTransferFromOption.textContent = "Select Account"; defaultTransferFromOption.selected = true; defaultTransferFromOption.disabled = true;
-                  fromAccountIdSelect.appendChild(defaultTransferFromOption);
-                  transferFromOptions.forEach(opt => fromAccountIdSelect.appendChild(opt));
-
               }
           } else if (response.status === 401) {
               displayMessage(accountsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
@@ -566,6 +595,79 @@
       } catch (error) {
           console.error('Error during transfer:', error);
           displayMessage(transferMessage, 'Network error or unable to connect to server.', 'error');
+      }
+  });
+
+  // --- View Transactions Button Click ---
+  viewTransactionsButton.addEventListener('click', async () => {
+      transactionsList.innerHTML = ''; // Clear previous transactions
+      transactionsMessage.textContent = '';
+
+      const accountId = transactionAccountIdSelect.value;
+      if (!accountId) {
+          displayMessage(transactionsMessage, 'Please select an account to view its transactions.', 'error');
+          return;
+      }
+
+      const jwtToken = localStorage.getItem('jwtToken');
+      if (!jwtToken) {
+          displayMessage(transactionsMessage, 'Authentication token missing. Please log in.', 'error');
+          return;
+      }
+
+      try {
+          const response = await fetch(`${backendUrl}/api/accounts/${accountId}/transactions`, {
+              method: 'GET',
+              headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'Content-Type': 'application/json'
+              }
+          });
+
+          if (response.ok) {
+              const transactions = await response.json();
+              if (transactions.length === 0) {
+                  displayMessage(transactionsMessage, 'No transactions found for this account.', 'info');
+              } else {
+                  transactions.forEach(transaction => {
+                      const li = document.createElement('li');
+                      li.className = 'account-item'; // Re-using account-item style for transactions
+                      const date = new Date(transaction.createdAt).toLocaleString(); // Format date nicely
+                      let transactionDetails = '';
+                      if (transaction.type === 'DEPOSIT') {
+                          transactionDetails = `Deposit: +$${parseFloat(transaction.amount).toFixed(2)}`;
+                      } else if (transaction.type === 'WITHDRAWAL') {
+                          transactionDetails = `Withdrawal: -$${parseFloat(transaction.amount).toFixed(2)}`;
+                      } else if (transaction.type === 'TRANSFER_OUT') {
+                          transactionDetails = `Transfer Out: -$${parseFloat(transaction.amount).toFixed(2)} (To Acc: ${transaction.toAccountNum || 'N/A'})`; // Added toAccountNum if available
+                      } else if (transaction.type === 'TRANSFER_IN') {
+                          transactionDetails = `Transfer In: +$${parseFloat(transaction.amount).toFixed(2)} (From Acc: ${transaction.fromAccountNum || 'N/A'})`; // Added fromAccountNum if available
+                      } else {
+                          transactionDetails = `Transaction: $${parseFloat(transaction.amount).toFixed(2)} (Type: ${transaction.type})`;
+                      }
+
+                      li.innerHTML = `
+                          <div>
+                              <strong>${transaction.type}:</strong> ${transactionDetails}<br>
+                              <small>Date: ${date}</small>
+                          </div>
+                      `;
+                      transactionsList.appendChild(li);
+                  });
+                  displayMessage(transactionsMessage, `Showing ${transactions.length} transactions.`, 'success');
+              }
+          } else if (response.status === 401) {
+              displayMessage(transactionsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              setTimeout(() => window.location.href = '/login', 1500);
+          } else {
+              const errorData = await response.json();
+              displayMessage(transactionsMessage, `Error fetching transactions: ${errorData.message || response.statusText}`, 'error');
+          }
+      } catch (error) {
+          console.error('Error fetching transactions:', error);
+          displayMessage(transactionsMessage, 'Network error or unable to connect to server.', 'error');
       }
   });
 

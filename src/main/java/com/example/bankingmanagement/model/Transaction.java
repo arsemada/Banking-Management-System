@@ -1,5 +1,6 @@
 package com.example.bankingmanagement.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,31 +13,46 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String transactionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", nullable = false)
+    @JsonBackReference
+    private Account account;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType type;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = false)
-    private LocalDateTime transactionDate;
+    private String relatedAccountNum;
 
-    // Many-to-one relationship with Account
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    private Account account;
+    @Column(nullable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private LocalDateTime createdAt;
 
-    // Constructors
-    public Transaction() {
-        this.transactionDate = LocalDateTime.now();
-        this.transactionId = java.util.UUID.randomUUID().toString(); // Generate unique ID
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+
+    public Transaction() {
+    }
+
+    public Transaction(Account account, TransactionType type, BigDecimal amount) {
+        this.account = account;
+        this.type = type;
+        this.amount = amount;
+    }
+
+    public Transaction(Account account, TransactionType type, BigDecimal amount, String relatedAccountNum) {
+        this.account = account;
+        this.type = type;
+        this.amount = amount;
+        this.relatedAccountNum = relatedAccountNum;
+    }
+
+
     public Long getId() {
         return id;
     }
@@ -45,12 +61,12 @@ public class Transaction {
         this.id = id;
     }
 
-    public String getTransactionId() {
-        return transactionId;
+    public Account getAccount() {
+        return account;
     }
 
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
+    public void setAccount(Account account) {
+        this.account = account;
     }
 
     public TransactionType getType() {
@@ -69,20 +85,19 @@ public class Transaction {
         this.amount = amount;
     }
 
-    public LocalDateTime getTransactionDate() {
-        return transactionDate;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setTransactionDate(LocalDateTime transactionDate) {
-        this.transactionDate = transactionDate;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
-    public Account getAccount() {
-        return account;
+    public String getRelatedAccountNum() {
+        return relatedAccountNum;
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
+    public void setRelatedAccountNum(String relatedAccountNum) {
+        this.relatedAccountNum = relatedAccountNum;
     }
-
 }

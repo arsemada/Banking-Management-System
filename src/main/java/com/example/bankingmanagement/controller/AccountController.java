@@ -1,13 +1,14 @@
 package com.example.bankingmanagement.controller;
 
-import com.example.bankingmanagement.exception.ResourceNotFoundException;
 import com.example.bankingmanagement.model.Account;
 import com.example.bankingmanagement.model.AccountType;
+import com.example.bankingmanagement.model.Transaction; // Import Transaction model
 import com.example.bankingmanagement.payload.request.CreateAccountRequest;
 import com.example.bankingmanagement.payload.request.TransactionRequest;
 import com.example.bankingmanagement.payload.request.TransferRequest;
 import com.example.bankingmanagement.payload.response.MessageResponse;
 import com.example.bankingmanagement.service.AccountService;
+import com.example.bankingmanagement.service.TransactionService; // Import TransactionService
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,9 @@ public class AccountController {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
@@ -82,7 +86,7 @@ public class AccountController {
         try {
             Account updatedAccount = accountService.deposit(principal.getName(), accountId, request.getAmount());
             return ResponseEntity.ok(updatedAccount);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+        } catch (IllegalArgumentException e) { // Catch IllegalArgumentException specifically
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during deposit: " + e.getMessage()));
@@ -98,7 +102,7 @@ public class AccountController {
         try {
             Account updatedAccount = accountService.withdraw(principal.getName(), accountId, request.getAmount());
             return ResponseEntity.ok(updatedAccount);
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+        } catch (IllegalArgumentException e) { // Catch IllegalArgumentException specifically
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during withdrawal: " + e.getMessage()));
@@ -118,12 +122,23 @@ public class AccountController {
                     request.getAmount()
             );
             return ResponseEntity.ok(new MessageResponse("Funds transferred successfully!"));
-        } catch (IllegalArgumentException | ResourceNotFoundException e) {
-            // Catch specific business logic errors for clearer messages
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
-            // Catch any other unexpected errors
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during transfer: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{accountId}/transactions")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> getAccountTransactions(@PathVariable Long accountId, Principal principal) {
+        try {
+            List<Transaction> transactions = transactionService.getTransactionsByAccountIdAndUser(accountId, principal.getName());
+            return ResponseEntity.ok(transactions);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching transactions: " + e.getMessage()));
         }
     }
 }
