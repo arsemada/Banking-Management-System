@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface AccountService {
 
-    Account createAccount(AccountType accountType); // Keep this if used elsewhere
+    Account createAccount(AccountType accountType);
 
     Account createAccountForUser(String username, AccountType accountType, BigDecimal initialBalance);
 
@@ -17,9 +17,11 @@ public interface AccountService {
 
     Optional<Account> getAccountByIdAndUser(Long accountId, String username);
 
-    Optional<Account> getAccountById(Long accountId); // Keep this if used elsewhere
+    Optional<Account> getAccountById(Long accountId);
 
-    // METHODS FOR DEPOSIT AND WITHDRAWAL ---
     Account deposit(String username, Long accountId, BigDecimal amount);
+
     Account withdraw(String username, Long accountId, BigDecimal amount);
+
+    void transferFunds(String username, Long fromAccountId, String toAccountNumber, BigDecimal amount);
 }

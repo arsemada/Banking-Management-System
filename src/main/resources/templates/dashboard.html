@@ -171,6 +171,28 @@
 
     <hr style="margin: 30px 0;">
 
+    <h2>Transfer Funds</h2>
+    <form id="transferForm">
+      <div class="form-group">
+        <label for="fromAccountId">From Account:</label>
+        <select id="fromAccountId" required>
+          <option value="">Loading accounts...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="toAccountNumber">To Account Number:</label>
+        <input type="text" id="toAccountNumber" placeholder="Enter recipient's account number" required>
+      </div>
+      <div class="form-group">
+        <label for="transferAmount">Amount:</label>
+        <input type="number" id="transferAmount" step="0.01" min="0.01" required>
+      </div>
+      <button type="submit" class="btn">Transfer</button>
+      <div id="transferMessage" class="message"></div>
+    </form>
+
+    <hr style="margin: 30px 0;">
+
     <h3>Recent Transactions (Coming Soon)</h3>
     <div id="transactionsList"></div>
 
@@ -186,16 +208,24 @@
   const accountsList = document.getElementById('accountsList');
   const accountsMessage = document.getElementById('accountsMessage');
 
-  // New elements for Deposit/Withdrawal
+  // Elements for Deposit
   const depositForm = document.getElementById('depositForm');
   const depositAccountIdSelect = document.getElementById('depositAccountId');
   const depositAmountInput = document.getElementById('depositAmount');
   const depositMessage = document.getElementById('depositMessage');
 
+  // Elements for Withdrawal
   const withdrawForm = document.getElementById('withdrawForm');
   const withdrawAccountIdSelect = document.getElementById('withdrawAccountId');
   const withdrawAmountInput = document.getElementById('withdrawAmount');
   const withdrawMessage = document.getElementById('withdrawMessage');
+
+  // New elements for Transfer
+  const transferForm = document.getElementById('transferForm');
+  const fromAccountIdSelect = document.getElementById('fromAccountId');
+  const toAccountNumberInput = document.getElementById('toAccountNumber');
+  const transferAmountInput = document.getElementById('transferAmount');
+  const transferMessage = document.getElementById('transferMessage');
 
 
   // --- Authentication Check and Page Setup ---
@@ -233,8 +263,11 @@
   async function fetchAccounts() {
       accountsList.innerHTML = ''; // Clear previous accounts
       accountsMessage.textContent = '';
+
+      // Clear and reset dropdowns for accounts (for all forms)
       depositAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>';
       withdrawAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>';
+      fromAccountIdSelect.innerHTML = '<option value="">Loading accounts...</option>'; // For transfer form
 
       const jwtToken = localStorage.getItem('jwtToken');
       if (!jwtToken) {
@@ -255,10 +288,16 @@
               const accounts = await response.json();
               if (accounts.length === 0) {
                   displayMessage(accountsMessage, 'You have no accounts yet. Create one above!', 'info');
-                  // Clear and populate dropdowns with default option
+                  // Clear and populate dropdowns with default "No accounts" option
                   depositAccountIdSelect.innerHTML = '<option value="">No accounts available</option>';
                   withdrawAccountIdSelect.innerHTML = '<option value="">No accounts available</option>';
+                  fromAccountIdSelect.innerHTML = '<option value="">No accounts available</option>'; // For transfer form
               } else {
+                  // Temporary arrays to hold options before adding default prepended options
+                  const depositOptions = [];
+                  const withdrawOptions = [];
+                  const transferFromOptions = [];
+
                   accounts.forEach(account => {
                       const li = document.createElement('li');
                       li.className = 'account-item';
@@ -270,27 +309,32 @@
                       `;
                       accountsList.appendChild(li);
 
-                      // Populate deposit and withdrawal dropdowns
                       const option = document.createElement('option');
                       option.value = account.id; // Use account ID as the value
                       option.textContent = `${account.accountType} (${account.accountNumber}) - $${parseFloat(account.balance).toFixed(2)}`;
-                      depositAccountIdSelect.appendChild(option.cloneNode(true)); // Clone for deposit
-                      withdrawAccountIdSelect.appendChild(option); // Add to withdraw (original node)
-                  });
-                  // Add default "Select Account" option to dropdowns after accounts are loaded
-                  const defaultOptionDeposit = document.createElement('option');
-                  defaultOptionDeposit.value = "";
-                  defaultOptionDeposit.textContent = "Select Account";
-                  defaultOptionDeposit.selected = true;
-                  defaultOptionDeposit.disabled = true;
-                  depositAccountIdSelect.prepend(defaultOptionDeposit);
 
-                  const defaultOptionWithdraw = document.createElement('option');
-                  defaultOptionWithdraw.value = "";
-                  defaultOptionWithdraw.textContent = "Select Account";
-                  defaultOptionWithdraw.selected = true;
-                  defaultOptionWithdraw.disabled = true;
-                  withdrawAccountIdSelect.prepend(defaultOptionWithdraw);
+                      // Push clones to temporary arrays
+                      depositOptions.push(option.cloneNode(true));
+                      withdrawOptions.push(option.cloneNode(true));
+                      transferFromOptions.push(option.cloneNode(true));
+                  });
+
+                  // Add default "Select Account" option and then append real options
+                  const defaultDepositOption = document.createElement('option');
+                  defaultDepositOption.value = ""; defaultDepositOption.textContent = "Select Account"; defaultDepositOption.selected = true; defaultDepositOption.disabled = true;
+                  depositAccountIdSelect.appendChild(defaultDepositOption);
+                  depositOptions.forEach(opt => depositAccountIdSelect.appendChild(opt));
+
+                  const defaultWithdrawOption = document.createElement('option');
+                  defaultWithdrawOption.value = ""; defaultWithdrawOption.textContent = "Select Account"; defaultWithdrawOption.selected = true; defaultWithdrawOption.disabled = true;
+                  withdrawAccountIdSelect.appendChild(defaultWithdrawOption);
+                  withdrawOptions.forEach(opt => withdrawAccountIdSelect.appendChild(opt));
+
+                  const defaultTransferFromOption = document.createElement('option');
+                  defaultTransferFromOption.value = ""; defaultTransferFromOption.textContent = "Select Account"; defaultTransferFromOption.selected = true; defaultTransferFromOption.disabled = true;
+                  fromAccountIdSelect.appendChild(defaultTransferFromOption);
+                  transferFromOptions.forEach(opt => fromAccountIdSelect.appendChild(opt));
+
               }
           } else if (response.status === 401) {
               displayMessage(accountsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
@@ -464,6 +508,64 @@
       } catch (error) {
           console.error('Error during withdrawal:', error);
           displayMessage(withdrawMessage, 'Network error or unable to connect to server.', 'error');
+      }
+  });
+
+  // --- Transfer Form Submission ---
+  transferForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      transferMessage.textContent = '';
+
+      const fromAccountId = fromAccountIdSelect.value;
+      const toAccountNumber = toAccountNumberInput.value.trim();
+      const amount = parseFloat(transferAmountInput.value);
+
+      if (!fromAccountId) {
+          displayMessage(transferMessage, 'Please select your source account.', 'error');
+          return;
+      }
+      if (!toAccountNumber) {
+          displayMessage(transferMessage, 'Please enter the recipient\'s account number.', 'error');
+          return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+          displayMessage(transferMessage, 'Please enter a positive amount to transfer.', 'error');
+          return;
+      }
+
+      const jwtToken = localStorage.getItem('jwtToken');
+      if (!jwtToken) {
+          displayMessage(transferMessage, 'Authentication token missing. Please log in.', 'error');
+          return;
+      }
+
+      try {
+          const response = await fetch(`${backendUrl}/api/accounts/transfer`, {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ fromAccountId, toAccountNumber, amount })
+          });
+
+          if (response.ok) {
+              const successData = await response.json(); // Expecting a MessageResponse
+              displayMessage(transferMessage, `Transfer successful: ${successData.message}`, 'success');
+              transferForm.reset();
+              fetchAccounts(); // Refresh account list and balances
+          } else if (response.status === 401) {
+              displayMessage(transferMessage, 'Session expired or unauthorized. Please log in again.', 'error');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              setTimeout(() => window.location.href = '/login', 1500);
+          } else {
+              const errorData = await response.json();
+              displayMessage(transferMessage, `Transfer failed: ${errorData.message || response.statusText}`, 'error');
+          }
+      } catch (error) {
+          console.error('Error during transfer:', error);
+          displayMessage(transferMessage, 'Network error or unable to connect to server.', 'error');
       }
   });
 

@@ -5,5 +5,6 @@ package com.example.bankingmanagement.model;
  */
 public enum AccountType {
     SAVINGS,
+    CHECKING,
     CURRENT
 }

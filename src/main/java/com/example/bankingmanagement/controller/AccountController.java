@@ -4,7 +4,8 @@ import com.example.bankingmanagement.exception.ResourceNotFoundException;
 import com.example.bankingmanagement.model.Account;
 import com.example.bankingmanagement.model.AccountType;
 import com.example.bankingmanagement.payload.request.CreateAccountRequest;
-import com.example.bankingmanagement.payload.request.TransactionRequest; // Import the new DTO
+import com.example.bankingmanagement.payload.request.TransactionRequest;
+import com.example.bankingmanagement.payload.request.TransferRequest;
 import com.example.bankingmanagement.payload.response.MessageResponse;
 import com.example.bankingmanagement.service.AccountService;
 import jakarta.validation.Valid;
@@ -72,7 +73,6 @@ public class AccountController {
         }
     }
 
-    // --- NEW ENDPOINT FOR DEPOSIT ---
     @PostMapping("/{accountId}/deposit")
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> deposit(
@@ -81,7 +81,7 @@ public class AccountController {
             Principal principal) {
         try {
             Account updatedAccount = accountService.deposit(principal.getName(), accountId, request.getAmount());
-            return ResponseEntity.ok(updatedAccount); // Return updated account details
+            return ResponseEntity.ok(updatedAccount);
         } catch (IllegalArgumentException | ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
@@ -89,7 +89,6 @@ public class AccountController {
         }
     }
 
-    // --- NEW ENDPOINT FOR WITHDRAWAL ---
     @PostMapping("/{accountId}/withdraw")
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<?> withdraw(
@@ -98,12 +97,33 @@ public class AccountController {
             Principal principal) {
         try {
             Account updatedAccount = accountService.withdraw(principal.getName(), accountId, request.getAmount());
-            return ResponseEntity.ok(updatedAccount); // Return updated account details
+            return ResponseEntity.ok(updatedAccount);
         } catch (IllegalArgumentException | ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during withdrawal: " + e.getMessage()));
         }
     }
-    // --- END NEW ENDPOINTS ---
+
+    @PostMapping("/transfer")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
+    public ResponseEntity<?> transfer(
+            @Valid @RequestBody TransferRequest request,
+            Principal principal) {
+        try {
+            accountService.transferFunds(
+                    principal.getName(),
+                    request.getFromAccountId(),
+                    request.getToAccountNumber(),
+                    request.getAmount()
+            );
+            return ResponseEntity.ok(new MessageResponse("Funds transferred successfully!"));
+        } catch (IllegalArgumentException | ResourceNotFoundException e) {
+            // Catch specific business logic errors for clearer messages
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+        } catch (Exception e) {
+            // Catch any other unexpected errors
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error during transfer: " + e.getMessage()));
+        }
+    }
 }
