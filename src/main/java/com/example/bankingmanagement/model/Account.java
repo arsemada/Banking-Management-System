@@ -27,7 +27,8 @@ public class Account {
     private LocalDateTime createdAt;
 
     // Many-to-one relationship with User
-    @ManyToOne(fetch = FetchType.LAZY) // Eager fetch if you always need the user, but Lazy is generally better
+    // --- IMPORTANT CHANGE: fetch = FetchType.EAGER ---
+    @ManyToOne(fetch = FetchType.EAGER) // Changed from LAZY to EAGER to ensure User is loaded for admin view
     @JoinColumn(name = "user_id", nullable = false) // Foreign key column
     @JsonBackReference // Prevents infinite recursion in JSON serialization
     private User user;

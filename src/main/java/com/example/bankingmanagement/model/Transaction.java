@@ -13,10 +13,11 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // --- ENSURE THIS IS FetchType.EAGER ---
+    @ManyToOne(fetch = FetchType.EAGER) // This must be EAGER to load the Account and its User
     @JoinColumn(name = "account_id", nullable = false)
     @JsonBackReference
-    private Account account;
+    private Account account; // The primary account involved in the transaction
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -28,76 +29,46 @@ public class Transaction {
     private String relatedAccountNum;
 
     @Column(nullable = false, updatable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime createdAt;
 
+    @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 
+    @Column(nullable = false)
+    private String status;
 
-    public Transaction() {
-    }
+    // --- Constructors (as previously updated) ---
+    public Transaction() {}
 
-    public Transaction(Account account, TransactionType type, BigDecimal amount) {
+    public Transaction(Account account, TransactionType type, BigDecimal amount, String status) {
         this.account = account;
         this.type = type;
         this.amount = amount;
+        this.status = status;
     }
 
-    public Transaction(Account account, TransactionType type, BigDecimal amount, String relatedAccountNum) {
+    public Transaction(Account account, TransactionType type, BigDecimal amount, String relatedAccountNum, String status) {
         this.account = account;
         this.type = type;
         this.amount = amount;
         this.relatedAccountNum = relatedAccountNum;
+        this.status = status;
     }
 
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
-    public void setAccount(Account account) {
-        this.account = account;
-    }
-
-    public TransactionType getType() {
-        return type;
-    }
-
-    public void setType(TransactionType type) {
-        this.type = type;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public String getRelatedAccountNum() {
-        return relatedAccountNum;
-    }
-
-    public void setRelatedAccountNum(String relatedAccountNum) {
-        this.relatedAccountNum = relatedAccountNum;
-    }
+    // --- Getters and Setters (as previously updated) ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Account getAccount() { return account; }
+    public void setAccount(Account account) { this.account = account; }
+    public TransactionType getType() { return type; }
+    public void setType(TransactionType type) { this.type = type; }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getRelatedAccountNum() { return relatedAccountNum; }
+    public void setRelatedAccountNum(String relatedAccountNum) { this.relatedAccountNum = relatedAccountNum; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

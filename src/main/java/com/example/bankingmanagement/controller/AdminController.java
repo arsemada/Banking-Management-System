@@ -1,9 +1,11 @@
 package com.example.bankingmanagement.controller;
 
 import com.example.bankingmanagement.model.Account;
+import com.example.bankingmanagement.model.Transaction;
 import com.example.bankingmanagement.model.User;
 import com.example.bankingmanagement.payload.response.MessageResponse;
 import com.example.bankingmanagement.service.AccountService;
+import com.example.bankingmanagement.service.TransactionService;
 import com.example.bankingmanagement.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,9 @@ public class AdminController {
     @Autowired
     private AccountService accountService;
 
+    @Autowired
+    private TransactionService transactionService;
+
     // --- User Management Endpoints ---
 
     @GetMapping("/users")
@@ -36,20 +41,28 @@ public class AdminController {
             List<User> users = userService.getAllUsers();
             return ResponseEntity.ok(users);
         } catch (Exception e) {
+            // Added error logging for debugging
+            System.err.println("Error fetching users: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching users: " + e.getMessage()));
         }
     }
 
     @GetMapping("/users/{id}")
+    // --- CRUCIAL CHANGE 1: Changed return type to ResponseEntity<?> ---
+    // This allows the method to return either a User object or a MessageResponse.
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         try {
             Optional<User> userOptional = userService.getUserById(id);
             if (userOptional.isPresent()) {
                 return ResponseEntity.ok().body(userOptional.get());
             } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("User not found.")); // <--- Correct line
+                // --- CRUCIAL CHANGE 2: Corrected syntax for returning MessageResponse ---
+                // You call .body() directly on the builder returned by .status().
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("User not found."));
             }
         } catch (Exception e) {
+            // Added error logging for debugging
+            System.err.println("Error fetching user by ID: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching user: " + e.getMessage()));
         }
     }
@@ -62,6 +75,8 @@ public class AdminController {
             List<Account> accounts = accountService.getAllAccounts();
             return ResponseEntity.ok(accounts);
         } catch (Exception e) {
+            // Added error logging for debugging
+            System.err.println("Error fetching accounts: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching accounts: " + e.getMessage()));
         }
     }
@@ -76,7 +91,23 @@ public class AdminController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Account not found."));
             }
         } catch (Exception e) {
+            // Added error logging for debugging
+            System.err.println("Error fetching account by ID: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching account: " + e.getMessage()));
+        }
+    }
+
+    // --- Transaction Management Endpoint (for Admin) ---
+
+    @GetMapping("/transactions")
+    public ResponseEntity<?> getAllTransactions() {
+        try {
+            List<Transaction> transactions = transactionService.getAllTransactions();
+            return ResponseEntity.ok(transactions);
+        } catch (Exception e) {
+            // Added error logging for debugging
+            System.err.println("Error fetching transactions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching transactions: " + e.getMessage()));
         }
     }
 }

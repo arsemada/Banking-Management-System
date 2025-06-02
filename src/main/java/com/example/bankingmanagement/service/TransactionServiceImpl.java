@@ -1,11 +1,11 @@
-package com.example.bankingmanagement.service; // Note the 'impl' subpackage
+package com.example.bankingmanagement.service;
 
 import com.example.bankingmanagement.exception.ResourceNotFoundException;
 import com.example.bankingmanagement.model.Account;
 import com.example.bankingmanagement.model.Transaction;
 import com.example.bankingmanagement.repository.AccountRepository;
 import com.example.bankingmanagement.repository.TransactionRepository;
-import com.example.bankingmanagement.service.TransactionService;
+import com.example.bankingmanagement.service.TransactionService; // Correct import for the interface
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,5 +30,10 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return transactionRepository.findByAccountOrderByCreatedAtDesc(account);
+    }
+
+    @Override
+    public List<Transaction> getAllTransactions() {
+        return transactionRepository.findAll();
     }
 }

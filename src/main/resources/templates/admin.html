@@ -12,7 +12,7 @@
         color: #333;
     }
     .container {
-        max-width: 1000px;
+        max-width: 1300px; /* Increased width to fit User column */
         margin: auto;
         background: #fff;
         padding: 20px;
@@ -44,6 +44,11 @@
         margin-top: 15px;
         padding: 10px;
         border-radius: 4px;
+        opacity: 1;
+        transition: opacity 0.5s ease-in-out;
+    }
+    .message.hidden {
+        opacity: 0;
     }
     .success {
         background-color: #d4edda;
@@ -64,15 +69,31 @@
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
+        table-layout: fixed;
     }
     th, td {
         border: 1px solid #ddd;
         padding: 8px;
         text-align: left;
+        word-wrap: break-word;
     }
     th {
         background-color: #f2f2f2;
     }
+    /* Specific column widths for better layout */
+    #usersTable th:nth-child(1), #accountsTable th:nth-child(1), #transactionsTable th:nth-child(1) { width: 5%; } /* ID */
+    #usersTable th:nth-child(2), #accountsTable th:nth-child(2) { width: 20%; } /* Username/Account Number */
+    #usersTable th:nth-child(3), #accountsTable th:nth-child(3) { width: 25%; } /* Email/Type */
+    #usersTable th:nth-child(4), #accountsTable th:nth-child(4) { width: 20%; } /* Roles/Balance */
+    #accountsTable th:nth-child(5) { width: 30%; } /* Owner */
+
+    #transactionsTable th:nth-child(2) { width: 10%; } /* Type */
+    #transactionsTable th:nth-child(3) { width: 10%; } /* Amount */
+    #transactionsTable th:nth-child(4) { width: 15%; } /* Date */
+    #transactionsTable th:nth-child(5) { width: 15%; } /* Source Account */
+    #transactionsTable th:nth-child(6) { width: 15%; } /* Destination Account */
+    #transactionsTable th:nth-child(7) { width: 10%; } /* Status */
+    #transactionsTable th:nth-child(8) { width: 10%; } /* User (NEW) */
   </style>
 </head>
 <body>
@@ -115,23 +136,52 @@
       <tbody>
       </tbody>
     </table>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>All Transactions</h2>
+    <div id="transactionsMessage" class="message"></div>
+    <table id="transactionsTable">
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Source Account</th>
+        <th>Destination Account</th>
+        <th>Status</th>
+        <th>User</th> </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
   </div>
 </div>
 
 <script>
-  const backendUrl = 'http://localhost:8083';
+  const backendUrl = 'http://localhost:8083'; // Ensure this matches your backend port
   const welcomeMessage = document.getElementById('welcomeMessage');
   const logoutButton = document.getElementById('logoutButton');
+
+  // Elements for Users table
   const usersTableBody = document.querySelector('#usersTable tbody');
-  const accountsTableBody = document.querySelector('#accountsTable tbody');
   const usersMessage = document.getElementById('usersMessage');
+
+  // Elements for Accounts table
+  const accountsTableBody = document.querySelector('#accountsTable tbody');
   const accountsMessage = document.getElementById('accountsMessage');
+
+  // Elements for Transactions table
+  const transactionsTableBody = document.querySelector('#transactionsTable tbody');
+  const transactionsMessage = document.getElementById('transactionsMessage');
+
 
   // --- Authentication Check and Page Setup ---
   document.addEventListener('DOMContentLoaded', () => {
       const username = localStorage.getItem('username');
       const jwtToken = localStorage.getItem('jwtToken');
-      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]'); // Get roles from localStorage
+      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
 
       if (!jwtToken || !username) {
           alert('Session expired or unauthorized. Please log in again.');
@@ -139,22 +189,22 @@
           return;
       }
 
-      // Important: Check if the user has ADMIN role
       if (!userRoles.includes('ROLE_ADMIN')) {
           alert('Access Denied: You do not have administrator privileges.');
-          window.location.href = '/dashboard'; // Redirect to regular dashboard or login
+          window.location.href = '/dashboard';
           return;
       }
 
       welcomeMessage.textContent = `Admin Dashboard - Welcome, ${username}!`;
       fetchAllUsers();
       fetchAllAccounts();
+      fetchAllTransactions();
   });
 
   logoutButton.addEventListener('click', () => {
       localStorage.removeItem('jwtToken');
       localStorage.removeItem('username');
-      localStorage.removeItem('userRoles'); // Clear roles too
+      localStorage.removeItem('userRoles');
       window.location.href = '/login';
   });
 
@@ -162,15 +212,19 @@
   function displayMessage(element, message, type) {
       element.textContent = message;
       element.className = `message ${type}`;
+      element.classList.remove('hidden');
       setTimeout(() => {
-          element.textContent = '';
-          element.className = 'message';
-      }, 5000); // Clear message after 5 seconds
+          element.classList.add('hidden');
+          setTimeout(() => {
+              element.textContent = '';
+              element.className = 'message';
+          }, 500);
+      }, 5000);
   }
 
-  // --- Fetch All Users Function ---
+  // --- Fetch All Users Function (Existing) ---
   async function fetchAllUsers() {
-      usersTableBody.innerHTML = ''; // Clear previous users
+      usersTableBody.innerHTML = '';
       usersMessage.textContent = '';
 
       const jwtToken = localStorage.getItem('jwtToken');
@@ -194,10 +248,9 @@
                       row.insertCell(0).textContent = user.id;
                       row.insertCell(1).textContent = user.username;
                       row.insertCell(2).textContent = user.email;
-                      // Display roles as a comma-separated string
                       const rolesCell = row.insertCell(3);
                       if (user.roles && user.roles.length > 0) {
-                          rolesCell.textContent = user.roles.map(role => role.name).join(', ');
+                          rolesCell.textContent = user.roles.map(role => role.name.replace('ROLE_', '')).join(', ');
                       } else {
                           rolesCell.textContent = 'N/A';
                       }
@@ -222,9 +275,9 @@
       }
   }
 
-  // --- Fetch All Accounts Function ---
+  // --- Fetch All Accounts Function (Existing) ---
   async function fetchAllAccounts() {
-      accountsTableBody.innerHTML = ''; // Clear previous accounts
+      accountsTableBody.innerHTML = '';
       accountsMessage.textContent = '';
 
       const jwtToken = localStorage.getItem('jwtToken');
@@ -249,7 +302,6 @@
                       row.insertCell(1).textContent = account.accountNumber;
                       row.insertCell(2).textContent = account.accountType;
                       row.insertCell(3).textContent = `$${parseFloat(account.balance).toFixed(2)}`;
-                      // Assuming 'user' object is populated in the account response
                       row.insertCell(4).textContent = account.user ? account.user.username : 'N/A';
                   });
                   displayMessage(accountsMessage, `Showing ${accounts.length} accounts.`, 'success');
@@ -269,6 +321,83 @@
       } catch (error) {
           console.error('Error fetching accounts:', error);
           displayMessage(accountsMessage, 'Network error or unable to connect to server.', 'error');
+      }
+  }
+
+  // --- Fetch All Transactions Function (Updated for User) ---
+  async function fetchAllTransactions() {
+      transactionsTableBody.innerHTML = '';
+      transactionsMessage.textContent = '';
+
+      const jwtToken = localStorage.getItem('jwtToken');
+
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/transactions`, {
+              method: 'GET',
+              headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'Content-Type': 'application/json'
+              }
+          });
+
+          if (response.ok) {
+              const transactions = await response.json();
+              if (transactions.length === 0) {
+                  displayMessage(transactionsMessage, 'No transactions found in the system.', 'info');
+              } else {
+                  transactions.forEach(transaction => {
+                      const row = transactionsTableBody.insertRow();
+
+                      let sourceAccountDisplay = 'N/A';
+                      let destinationAccountDisplay = 'N/A';
+                      let userNameDisplay = 'N/A'; // NEW variable for user's username
+
+                      // Get username from the associated account
+                      if (transaction.account && transaction.account.user) {
+                          userNameDisplay = transaction.account.user.username;
+                      }
+
+                      // Logic based on your specific TransactionType enum
+                      if (transaction.type === 'DEPOSIT') {
+                          sourceAccountDisplay = 'External';
+                          destinationAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                      } else if (transaction.type === 'WITHDRAWAL') {
+                          sourceAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                          destinationAccountDisplay = 'External';
+                      } else if (transaction.type === 'TRANSFER_OUT') {
+                          sourceAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                          destinationAccountDisplay = transaction.relatedAccountNum || 'N/A';
+                      } else if (transaction.type === 'TRANSFER_IN') {
+                          sourceAccountDisplay = transaction.relatedAccountNum || 'N/A';
+                          destinationAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                      }
+
+                      row.insertCell(0).textContent = transaction.id;
+                      row.insertCell(1).textContent = transaction.type;
+                      row.insertCell(2).textContent = `$${parseFloat(transaction.amount).toFixed(2)}`;
+                      row.insertCell(3).textContent = new Date(transaction.createdAt).toLocaleString();
+                      row.insertCell(4).textContent = sourceAccountDisplay;
+                      row.insertCell(5).textContent = destinationAccountDisplay;
+                      row.insertCell(6).textContent = transaction.status;
+                      row.insertCell(7).textContent = userNameDisplay; // NEW CELL for the user's username
+                  });
+                  displayMessage(transactionsMessage, `Showing ${transactions.length} transactions.`, 'success');
+              }
+          } else if (response.status === 401) {
+              displayMessage(transactionsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
+              localStorage.removeItem('jwtToken');
+              localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
+              setTimeout(() => window.location.href = '/login', 1500);
+          } else if (response.status === 403) {
+              displayMessage(transactionsMessage, 'Access Denied: You do not have permission to view transactions.', 'error');
+          } else {
+              const errorData = await response.json();
+              displayMessage(transactionsMessage, `Error fetching transactions: ${errorData.message || response.statusText}`, 'error');
+          }
+      } catch (error) {
+          console.error('Error fetching transactions:', error);
+          displayMessage(transactionsMessage, 'Network error or unable to connect to server.', 'error');
       }
   }
 </script>

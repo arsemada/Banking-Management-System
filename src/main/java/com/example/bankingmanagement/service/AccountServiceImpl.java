@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDateTime; // Already present, good.
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,7 +59,8 @@ public class AccountServiceImpl implements AccountService {
         Account savedAccount = accountRepository.save(newAccount);
 
         if (initialBalance != null && initialBalance.compareTo(BigDecimal.ZERO) > 0) {
-            Transaction initialDeposit = new Transaction(savedAccount, TransactionType.DEPOSIT, initialBalance);
+            // UPDATED: Added "COMPLETED" status
+            Transaction initialDeposit = new Transaction(savedAccount, TransactionType.DEPOSIT, initialBalance, "COMPLETED");
             transactionRepository.save(initialDeposit);
         }
 
@@ -99,7 +100,8 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().add(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        Transaction transaction = new Transaction(updatedAccount, TransactionType.DEPOSIT, amount);
+        // UPDATED: Added "COMPLETED" status
+        Transaction transaction = new Transaction(updatedAccount, TransactionType.DEPOSIT, amount, "COMPLETED");
         transactionRepository.save(transaction);
 
         return updatedAccount;
@@ -122,7 +124,8 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        Transaction transaction = new Transaction(updatedAccount, TransactionType.WITHDRAWAL, amount);
+        // UPDATED: Added "COMPLETED" status
+        Transaction transaction = new Transaction(updatedAccount, TransactionType.WITHDRAWAL, amount, "COMPLETED");
         transactionRepository.save(transaction);
 
         return updatedAccount;
@@ -155,14 +158,18 @@ public class AccountServiceImpl implements AccountService {
         toAccount.setBalance(toAccount.getBalance().add(amount));
         accountRepository.save(toAccount);
 
-        Transaction fromTransaction = new Transaction(fromAccount, TransactionType.TRANSFER_OUT, amount, toAccount.getAccountNumber());
+        // UPDATED: Added "COMPLETED" status for TRANSFER_OUT
+        Transaction fromTransaction = new Transaction(fromAccount, TransactionType.TRANSFER_OUT, amount, toAccount.getAccountNumber(), "COMPLETED");
         transactionRepository.save(fromTransaction);
 
-        Transaction toTransaction = new Transaction(toAccount, TransactionType.TRANSFER_IN, amount, fromAccount.getAccountNumber());
+        // UPDATED: Added "COMPLETED" status for TRANSFER_IN
+        Transaction toTransaction = new Transaction(toAccount, TransactionType.TRANSFER_IN, amount, fromAccount.getAccountNumber(), "COMPLETED");
         transactionRepository.save(toTransaction);
     }
 
     private String generateAccountNumber() {
+        // This generates a simple 10-character account number.
+        // For production, consider a more robust and unique generation strategy.
         return UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
     }
 
