@@ -1,7 +1,6 @@
 package com.example.bankingmanagement.controller;
 
 import com.example.bankingmanagement.model.Account;
-import com.example.bankingmanagement.model.AccountType;
 import com.example.bankingmanagement.model.Transaction; // Import Transaction model
 import com.example.bankingmanagement.payload.request.CreateAccountRequest;
 import com.example.bankingmanagement.payload.request.TransactionRequest;
@@ -16,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
 import java.util.Optional;

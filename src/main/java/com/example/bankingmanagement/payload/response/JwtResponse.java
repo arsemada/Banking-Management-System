@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @Setter
 public class JwtResponse {
-    private String token;
+    private String token; 
     private String type = "Bearer";
     private Long id;
     private String username;
@@ -22,5 +22,6 @@ public class JwtResponse {
         this.email = email;
         this.roles = roles;
     }
+
 
 }

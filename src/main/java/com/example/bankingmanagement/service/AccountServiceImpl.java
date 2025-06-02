@@ -9,6 +9,7 @@ import com.example.bankingmanagement.model.TransactionType;
 import com.example.bankingmanagement.repository.AccountRepository;
 import com.example.bankingmanagement.repository.UserRepository;
 import com.example.bankingmanagement.repository.TransactionRepository;
+import com.example.bankingmanagement.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,13 +32,14 @@ public class AccountServiceImpl implements AccountService {
     @Autowired
     private TransactionRepository transactionRepository;
 
+
     @Override
     public Account createAccount(AccountType accountType) {
         Account newAccount = new Account();
         newAccount.setAccountType(accountType);
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setBalance(BigDecimal.ZERO);
-        newAccount.setCreatedAt(LocalDateTime.now());
+
         return accountRepository.save(newAccount);
     }
 
@@ -50,11 +52,18 @@ public class AccountServiceImpl implements AccountService {
         Account newAccount = new Account();
         newAccount.setAccountType(accountType);
         newAccount.setBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO);
-        newAccount.setCreatedAt(LocalDateTime.now());
+
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setUser(user);
 
-        return accountRepository.save(newAccount);
+        Account savedAccount = accountRepository.save(newAccount);
+
+        if (initialBalance != null && initialBalance.compareTo(BigDecimal.ZERO) > 0) {
+            Transaction initialDeposit = new Transaction(savedAccount, TransactionType.DEPOSIT, initialBalance);
+            transactionRepository.save(initialDeposit);
+        }
+
+        return savedAccount;
     }
 
     @Override
@@ -70,6 +79,7 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
         return accountRepository.findByIdAndUser(accountId, user);
     }
+
 
     @Override
     public Optional<Account> getAccountById(Long accountId) {
@@ -89,10 +99,7 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().add(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setAccount(updatedAccount);
-        transaction.setAmount(amount);
-        transaction.setType(TransactionType.DEPOSIT);
+        Transaction transaction = new Transaction(updatedAccount, TransactionType.DEPOSIT, amount);
         transactionRepository.save(transaction);
 
         return updatedAccount;
@@ -115,63 +122,58 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setAccount(updatedAccount);
-        transaction.setAmount(amount);
-        transaction.setType(TransactionType.WITHDRAWAL);
+        Transaction transaction = new Transaction(updatedAccount, TransactionType.WITHDRAWAL, amount);
         transactionRepository.save(transaction);
 
         return updatedAccount;
     }
 
     @Override
-    @Transactional // Ensures both debit and credit happen or none do
+    @Transactional
     public void transferFunds(String username, Long fromAccountId, String toAccountNumber, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Transfer amount must be positive.");
         }
 
-        // 1. Get the source account and verify ownership
         Account fromAccount = getAccountByIdAndUser(fromAccountId, username)
                 .orElseThrow(() -> new ResourceNotFoundException("Source account not found or not accessible."));
 
-        // 2. Get the destination account by account number (can be any user's account)
         Account toAccount = accountRepository.findByAccountNumber(toAccountNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination account not found."));
 
-        // Prevent transfer to self (same account ID) unless specifically allowed
         if (fromAccount.getId().equals(toAccount.getId())) {
             throw new IllegalArgumentException("Cannot transfer funds to the same account.");
         }
 
-        // 3. Check for sufficient funds in the source account
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient funds for transfer.");
         }
 
-        // 4. Perform the debit from the source account
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
         accountRepository.save(fromAccount);
 
-        // 5. Perform the credit to the destination account
         toAccount.setBalance(toAccount.getBalance().add(amount));
         accountRepository.save(toAccount);
 
-        // 6. Record transactions for both accounts
-        Transaction fromTransaction = new Transaction();
-        fromTransaction.setAccount(fromAccount);
-        fromTransaction.setAmount(amount);
-        fromTransaction.setType(TransactionType.TRANSFER_OUT);
+        Transaction fromTransaction = new Transaction(fromAccount, TransactionType.TRANSFER_OUT, amount, toAccount.getAccountNumber());
         transactionRepository.save(fromTransaction);
 
-        Transaction toTransaction = new Transaction();
-        toTransaction.setAccount(toAccount);
-        toTransaction.setAmount(amount);
-        toTransaction.setType(TransactionType.TRANSFER_IN);
+        Transaction toTransaction = new Transaction(toAccount, TransactionType.TRANSFER_IN, amount, fromAccount.getAccountNumber());
         transactionRepository.save(toTransaction);
     }
 
     private String generateAccountNumber() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
+    }
+
+
+    @Override
+    public List<Account> getAllAccounts() {
+        return accountRepository.findAll();
+    }
+
+    @Override
+    public Optional<Account> getAccountByIdAdmin(Long accountId) {
+        return accountRepository.findById(accountId);
     }
 }

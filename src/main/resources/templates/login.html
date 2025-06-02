@@ -99,17 +99,17 @@
 <script>
   const loginForm = document.getElementById('loginForm');
   const errorMessageDiv = document.getElementById('errorMessage');
-  const backendUrl = 'http://localhost:8083';
+  const backendUrl = 'http://localhost:8083'; // Ensure this matches your backend port
 
   loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      errorMessageDiv.textContent = '';
+      errorMessageDiv.textContent = ''; // Clear previous errors
 
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
       try {
-          const response = await fetch(`${backendUrl}/auth/signin`, {
+          const response = await fetch(`${backendUrl}/api/auth/signin`, { // Changed /auth to /api/auth
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json'
@@ -119,42 +119,34 @@
 
           const data = await response.json();
 
-          // --- ADD THESE LOGS ---
-          console.log('Backend login response data:', data); // <-- IMPORTANT: Check this in browser console
-          console.log('Type of data.jwt:', typeof data.jwt, 'Value:', data.jwt);
-          console.log('Type of data.accessToken:', typeof data.accessToken, 'Value:', data.accessToken);
-          console.log('Type of data.token:', typeof data.token, 'Value:', data.token);
-          // --- END ADDED LOGS ---
-
           if (response.ok) {
-              let tokenToStore = null;
+              // Your JwtResponse.java uses 'token' property for the JWT itself.
+              // Also ensures username and roles are stored.
+              if (data.token) {
+                  localStorage.setItem('jwtToken', data.token);
+                  localStorage.setItem('username', data.username);
+                  localStorage.setItem('userRoles', JSON.stringify(data.roles || [])); // Store roles, default to empty array if null
 
-              // --- CRITICAL: Use the correct property name based on your backend response ---
-              if (data.accessToken) {
-                  tokenToStore = data.accessToken;
-                  console.log('Using accessToken from response.');
-              } else if (data.token) { // Some backends use 'token'
-                  tokenToStore = data.token;
-                  console.log('Using token from response.');
-              } else if (data.jwt) { // Your previous code used 'jwt'
-                  tokenToStore = data.jwt;
-                  console.log('Using jwt from response.');
+                  // Conditional redirect based on user roles
+                  if (data.roles && data.roles.includes('ROLE_ADMIN')) {
+                      alert('Login successful! Redirecting to Admin Dashboard...');
+                      window.location.href = '/admin'; // Redirect to admin dashboard
+                  } else {
+                      alert('Login successful! Redirecting to User Dashboard...');
+                      window.location.href = '/dashboard'; // Redirect to regular dashboard
+                  }
               } else {
-                  console.error('No JWT token found in response (accessToken, token, or jwt). Please check backend AuthResponse DTO.');
-                  errorMessageDiv.textContent = 'Login successful, but no token received from server. Contact support.';
-                  return; // Stop here if no token is found
+                  console.error('Login successful, but no JWT token received. Response:', data);
+                  errorMessageDiv.textContent = 'Login failed: Server did not provide a token.';
               }
-
-              localStorage.setItem('jwtToken', tokenToStore); // Store it consistently as 'jwtToken'
-              localStorage.setItem('username', data.username); // Assuming username is also in the response
-
-              alert('Login successful! Redirecting to dashboard...');
-              window.location.href = '/dashboard';
           } else {
+              // Handle server-side errors (e.g., bad credentials)
+              const message = data.message || 'Login failed. Please check your credentials.';
+              errorMessageDiv.textContent = message;
               console.error('Login failed:', data);
-              errorMessageDiv.textContent = data.message || 'Login failed. Please check your credentials.';
           }
       } catch (error) {
+          // Handle network errors or other unexpected issues
           console.error('Network error or unexpected issue:', error);
           errorMessageDiv.textContent = 'A network error occurred. Please try again.';
       }

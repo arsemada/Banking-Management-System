@@ -24,4 +24,9 @@ public interface AccountService {
     Account withdraw(String username, Long accountId, BigDecimal amount);
 
     void transferFunds(String username, Long fromAccountId, String toAccountNumber, BigDecimal amount);
+
+    List<Account> getAllAccounts();
+    Optional<Account> getAccountByIdAdmin(Long accountId);
+
+
 }

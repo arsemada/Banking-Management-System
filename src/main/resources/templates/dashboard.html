@@ -103,6 +103,23 @@
     .account-item strong {
         color: #0056b3;
     }
+    /* Style for transaction details */
+    .transaction-item {
+        background-color: #f8f9fa; /* Slightly different background for distinction */
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        border-left: 5px solid; /* For colored stripe */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .transaction-item.deposit { border-color: #28a745; } /* Green for deposits */
+    .transaction-item.withdrawal { border-color: #dc3545; } /* Red for withdrawals */
+    .transaction-item.transfer-in { border-color: #17a2b8; } /* Cyan for transfers in */
+    .transaction-item.transfer-out { border-color: #ffc107; } /* Yellow for transfers out */
+    .transaction-amount.positive { color: #28a745; font-weight: bold; }
+    .transaction-amount.negative { color: #dc3545; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -135,6 +152,7 @@
 
     <h2>Your Accounts</h2>
     <ul id="accountsList" class="account-list">
+      <li class="info">Loading your accounts...</li>
     </ul>
     <div id="accountsMessage" class="message"></div>
 
@@ -216,7 +234,7 @@
 </div>
 
 <script>
-  const backendUrl = 'http://localhost:8083';
+  const backendUrl = 'http://localhost:8083'; // Ensure this matches your backend port
   const welcomeMessage = document.getElementById('welcomeMessage');
   const logoutButton = document.getElementById('logoutButton');
   const createAccountForm = document.getElementById('createAccountForm');
@@ -254,11 +272,19 @@
   document.addEventListener('DOMContentLoaded', () => {
       const username = localStorage.getItem('username');
       const jwtToken = localStorage.getItem('jwtToken');
+      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]'); // Get and parse roles
 
       if (!jwtToken || !username) {
           alert('Session expired or unauthorized. Please log in again.');
           window.location.href = '/login';
           return;
+      }
+
+      // Optional: Prevent admin users from accessing dashboard directly if desired
+      if (userRoles.includes('ROLE_ADMIN')) {
+          // alert('Admin users should use the admin dashboard. Redirecting...');
+          // window.location.href = '/admin'; // Uncomment if you want to force redirect
+          // return;
       }
 
       welcomeMessage.textContent = `Welcome, ${username}!`;
@@ -268,6 +294,7 @@
   logoutButton.addEventListener('click', () => {
       localStorage.removeItem('jwtToken');
       localStorage.removeItem('username');
+      localStorage.removeItem('userRoles'); // Clear roles on logout
       window.location.href = '/login';
   });
 
@@ -283,14 +310,14 @@
 
   // --- Fetch Accounts Function ---
   async function fetchAccounts() {
-      accountsList.innerHTML = ''; // Clear previous accounts
+      accountsList.innerHTML = '<li class="info">Loading your accounts...</li>'; // Show loading message
       accountsMessage.textContent = '';
 
       // Clear and reset dropdowns for accounts (for all forms)
-      depositAccountIdSelect.innerHTML = '';
-      withdrawAccountIdSelect.innerHTML = '';
-      fromAccountIdSelect.innerHTML = '';
-      transactionAccountIdSelect.innerHTML = ''; // For transaction history form
+      depositAccountIdSelect.innerHTML = '<option value="" selected disabled>Loading accounts...</option>';
+      withdrawAccountIdSelect.innerHTML = '<option value="" selected disabled>Loading accounts...</option>';
+      fromAccountIdSelect.innerHTML = '<option value="" selected disabled>Loading accounts...</option>';
+      transactionAccountIdSelect.innerHTML = '<option value="" selected disabled>Loading accounts...</option>';
 
       const jwtToken = localStorage.getItem('jwtToken');
       if (!jwtToken) {
@@ -310,34 +337,25 @@
           if (response.ok) {
               const accounts = await response.json();
 
-              // Add default "Select Account" option first for all dropdowns
-              const defaultOptionText = "Select Account";
-              const defaultOptionValue = "";
-              const defaultOptionSelected = true;
-              const defaultOptionDisabled = true;
-
-              const createAndAppendDefaultOption = (selectElement) => {
-                  const defaultOption = document.createElement('option');
-                  defaultOption.value = defaultOptionValue;
-                  defaultOption.textContent = defaultOptionText;
-                  defaultOption.selected = defaultOptionSelected;
-                  defaultOption.disabled = defaultOptionDisabled;
-                  selectElement.appendChild(defaultOption);
+              const populateSelect = (selectElement, accountsArray, defaultText) => {
+                  selectElement.innerHTML = `<option value="" selected disabled>${defaultText}</option>`;
+                  accountsArray.forEach(account => {
+                      const option = document.createElement('option');
+                      option.value = account.id;
+                      option.textContent = `${account.accountType} (${account.accountNumber}) - $${parseFloat(account.balance).toFixed(2)}`;
+                      selectElement.appendChild(option);
+                  });
               };
-
-              createAndAppendDefaultOption(depositAccountIdSelect);
-              createAndAppendDefaultOption(withdrawAccountIdSelect);
-              createAndAppendDefaultOption(fromAccountIdSelect);
-              createAndAppendDefaultOption(transactionAccountIdSelect); // For transaction history
 
               if (accounts.length === 0) {
                   displayMessage(accountsMessage, 'You have no accounts yet. Create one above!', 'info');
-                  // Update message for dropdowns if no accounts
-                  depositAccountIdSelect.querySelector('option').textContent = "No accounts available";
-                  withdrawAccountIdSelect.querySelector('option').textContent = "No accounts available";
-                  fromAccountIdSelect.querySelector('option').textContent = "No accounts available";
-                  transactionAccountIdSelect.querySelector('option').textContent = "No accounts available";
+                  populateSelect(depositAccountIdSelect, [], "No accounts available");
+                  populateSelect(withdrawAccountIdSelect, [], "No accounts available");
+                  populateSelect(fromAccountIdSelect, [], "No accounts available");
+                  populateSelect(transactionAccountIdSelect, [], "No accounts available");
+                  accountsList.innerHTML = '<li class="info">No accounts found.</li>'; // Update account list message
               } else {
+                  accountsList.innerHTML = ''; // Clear loading message
                   accounts.forEach(account => {
                       const li = document.createElement('li');
                       li.className = 'account-item';
@@ -348,35 +366,29 @@
                           </div>
                       `;
                       accountsList.appendChild(li);
-
-                      // Create and append options to all relevant dropdowns
-                      const optionHtml = `${account.accountType} (${account.accountNumber}) - $${parseFloat(account.balance).toFixed(2)}`;
-
-                      const createAndAppendOption = (selectElement) => {
-                          const option = document.createElement('option');
-                          option.value = account.id;
-                          option.textContent = optionHtml;
-                          selectElement.appendChild(option);
-                      };
-
-                      createAndAppendOption(depositAccountIdSelect);
-                      createAndAppendOption(withdrawAccountIdSelect);
-                      createAndAppendOption(fromAccountIdSelect);
-                      createAndAppendOption(transactionAccountIdSelect); // For transaction history
                   });
+
+                  // Populate all dropdowns
+                  populateSelect(depositAccountIdSelect, accounts, "Select Account");
+                  populateSelect(withdrawAccountIdSelect, accounts, "Select Account");
+                  populateSelect(fromAccountIdSelect, accounts, "Select Account");
+                  populateSelect(transactionAccountIdSelect, accounts, "Select Account");
               }
           } else if (response.status === 401) {
               displayMessage(accountsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
               setTimeout(() => window.location.href = '/login', 1500);
           } else {
               const errorData = await response.json();
               displayMessage(accountsMessage, `Error fetching accounts: ${errorData.message || response.statusText}`, 'error');
+              accountsList.innerHTML = '<li class="error">Failed to load accounts.</li>';
           }
       } catch (error) {
           console.error('Error fetching accounts:', error);
           displayMessage(accountsMessage, 'Network error or unable to connect to server.', 'error');
+          accountsList.innerHTML = '<li class="error">Network error: Could not load accounts.</li>';
       }
   }
 
@@ -393,7 +405,7 @@
           return;
       }
       if (isNaN(initialBalance) || initialBalance < 0) {
-          displayMessage(createAccountMessage, 'Please enter a valid positive initial balance.', 'error');
+          displayMessage(createAccountMessage, 'Please enter a valid non-negative initial balance.', 'error');
           return;
       }
 
@@ -422,6 +434,7 @@
               displayMessage(createAccountMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
               setTimeout(() => window.location.href = '/login', 1500);
           }
           else {
@@ -476,6 +489,7 @@
               displayMessage(depositMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
               setTimeout(() => window.location.href = '/login', 1500);
           } else {
               const errorData = await response.json();
@@ -529,6 +543,7 @@
               displayMessage(withdrawMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
               setTimeout(() => window.location.href = '/login', 1500);
           } else {
               const errorData = await response.json();
@@ -579,7 +594,8 @@
           });
 
           if (response.ok) {
-              const successData = await response.json(); // Expecting a MessageResponse
+              // Assuming transfer endpoint returns a MessageResponse for success
+              const successData = await response.json();
               displayMessage(transferMessage, `Transfer successful: ${successData.message}`, 'success');
               transferForm.reset();
               fetchAccounts(); // Refresh account list and balances
@@ -587,6 +603,7 @@
               displayMessage(transferMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
               setTimeout(() => window.location.href = '/login', 1500);
           } else {
               const errorData = await response.json();
@@ -631,26 +648,43 @@
               } else {
                   transactions.forEach(transaction => {
                       const li = document.createElement('li');
-                      li.className = 'account-item'; // Re-using account-item style for transactions
+                      li.className = `transaction-item ${transaction.type.toLowerCase().replace('_', '-')}`; // Add type-specific class
+
                       const date = new Date(transaction.createdAt).toLocaleString(); // Format date nicely
                       let transactionDetails = '';
-                      if (transaction.type === 'DEPOSIT') {
-                          transactionDetails = `Deposit: +$${parseFloat(transaction.amount).toFixed(2)}`;
-                      } else if (transaction.type === 'WITHDRAWAL') {
-                          transactionDetails = `Withdrawal: -$${parseFloat(transaction.amount).toFixed(2)}`;
-                      } else if (transaction.type === 'TRANSFER_OUT') {
-                          transactionDetails = `Transfer Out: -$${parseFloat(transaction.amount).toFixed(2)} (To Acc: ${transaction.toAccountNum || 'N/A'})`; // Added toAccountNum if available
-                      } else if (transaction.type === 'TRANSFER_IN') {
-                          transactionDetails = `Transfer In: +$${parseFloat(transaction.amount).toFixed(2)} (From Acc: ${transaction.fromAccountNum || 'N/A'})`; // Added fromAccountNum if available
+                      let amountClass = 'transaction-amount';
+                      let displayAmount;
+
+                      if (['DEPOSIT', 'TRANSFER_IN'].includes(transaction.type)) {
+                          displayAmount = `+$${parseFloat(transaction.amount).toFixed(2)}`;
+                          amountClass += ' positive';
+                      } else if (['WITHDRAWAL', 'TRANSFER_OUT'].includes(transaction.type)) {
+                          displayAmount = `-$${parseFloat(transaction.amount).toFixed(2)}`;
+                          amountClass += ' negative';
                       } else {
-                          transactionDetails = `Transaction: $${parseFloat(transaction.amount).toFixed(2)} (Type: ${transaction.type})`;
+                          displayAmount = `$${parseFloat(transaction.amount).toFixed(2)}`;
+                      }
+
+                      if (transaction.type === 'DEPOSIT') {
+                          transactionDetails = `Deposit`;
+                      } else if (transaction.type === 'WITHDRAWAL') {
+                          transactionDetails = `Withdrawal`;
+                      } else if (transaction.type === 'TRANSFER_OUT') {
+                          // Assuming your backend Transaction DTO has a 'relatedAccountNum' for transfers
+                          transactionDetails = `Transfer Out (To Acc: ${transaction.relatedAccountNum || 'N/A'})`;
+                      } else if (transaction.type === 'TRANSFER_IN') {
+                          // Assuming your backend Transaction DTO has a 'relatedAccountNum' for transfers
+                          transactionDetails = `Transfer In (From Acc: ${transaction.relatedAccountNum || 'N/A'})`;
+                      } else {
+                          transactionDetails = `Transaction`;
                       }
 
                       li.innerHTML = `
                           <div>
-                              <strong>${transaction.type}:</strong> ${transactionDetails}<br>
+                              <strong>${transactionDetails}</strong><br>
                               <small>Date: ${date}</small>
                           </div>
+                          <span class="${amountClass}">${displayAmount}</span>
                       `;
                       transactionsList.appendChild(li);
                   });
@@ -660,6 +694,7 @@
               displayMessage(transactionsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
               localStorage.removeItem('jwtToken');
               localStorage.removeItem('username');
+              localStorage.removeItem('userRoles');
               setTimeout(() => window.location.href = '/login', 1500);
           } else {
               const errorData = await response.json();

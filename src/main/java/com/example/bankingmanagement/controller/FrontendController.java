@@ -21,8 +21,13 @@ public class FrontendController {
         return "dashboard";
     }
 
-    @GetMapping("/register") //
+    @GetMapping("/register")
     public String showRegisterPage() {
         return "register";
+    }
+
+    @GetMapping("/admin")
+    public String showAdminPage() {
+        return "admin";
     }
 }

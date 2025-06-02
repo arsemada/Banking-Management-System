@@ -1,4 +1,4 @@
-package com.example.bankingmanagement.security;
+package com.example.bankingmanagement.security.WebSecurityConfig; // <-- VERIFY YOUR PACKAGE NAME
 
 import com.example.bankingmanagement.security.jwt.AuthEntryPointJwt;
 import com.example.bankingmanagement.security.jwt.AuthTokenFilter;
@@ -11,14 +11,18 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity; // Import WebSecurity
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // Import WebSecurityCustomizer
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher; // Required for AntPathRequestMatcher
 
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity // Enables @PreAuthorize, @PostAuthorize, @HasRole, etc.
 public class WebSecurityConfig {
 
     @Autowired
@@ -50,24 +54,47 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * This bean is crucial for telling Spring Security to completely ignore
+     * certain paths from its entire filter chain. This is ideal for static
+     * resources and direct HTML page requests that should not be secured.
+     */
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(
+                // Static resources (CSS, JS, images, favicon)
+                new AntPathRequestMatcher("/css/**"),
+                new AntPathRequestMatcher("/js/**"),
+                new AntPathRequestMatcher("/favicon.ico"),
+                // Publicly accessible HTML pages
+                new AntPathRequestMatcher("/"),          // Root path (if you have an index.html)
+                new AntPathRequestMatcher("/login"),
+                new AntPathRequestMatcher("/register"),
+                new AntPathRequestMatcher("/dashboard"),
+                new AntPathRequestMatcher("/admin"),
+                // The error page itself should be accessible to display messages
+                new AntPathRequestMatcher("/error")
+        );
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+        http.csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/auth/**").permitAll() // Authentication API endpoints
-                                .requestMatchers("/api/test/all").permitAll() // Public test API
-                                .requestMatchers("/login").permitAll() // Login HTML page (via controller)
-                                .requestMatchers("/").permitAll() // Root path redirects to login
-                                .requestMatchers("/dashboard").permitAll() // <--- ADDED THIS LINE (Dashboard HTML page via controller)
-                                .requestMatchers("/register").permitAll() // <--- ADDED THIS LINE (Registration HTML page via controller)
-
-                                .anyRequest().authenticated() // All other requests (mostly API calls) require authentication
+                .authorizeHttpRequests(auth -> auth
+                        // API authentication endpoints (JWT will be handled by AuthController)
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // API endpoints requiring ADMIN role
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // API endpoints requiring USER or ADMIN role
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                        // All other API requests must be authenticated (e.g., /api/accounts, /api/transactions)
+                        .anyRequest().authenticated()
                 );
 
+        // Add the JWT token filter before the Spring Security UsernamePasswordAuthenticationFilter
         http.authenticationProvider(authenticationProvider());
-
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
