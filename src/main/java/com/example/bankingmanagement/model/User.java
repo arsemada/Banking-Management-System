@@ -1,7 +1,7 @@
 package com.example.bankingmanagement.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference; // Import for handling bidirectional relationships
-import jakarta.persistence.*;
+import jakarta.persistence.*; // Correct for Spring Boot 3.x
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -61,6 +61,7 @@ public class User {
     }
 
     // --- NEW: Helper methods for bidirectional relationship management ---
+    // Lombok's @Data will generate basic getters/setters. These are for managing the list.
     public void addAccount(Account account) {
         accounts.add(account);
         account.setUser(this);

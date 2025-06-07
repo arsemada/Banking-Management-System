@@ -1,4 +1,4 @@
-package com.example.bankingmanagement.security.WebSecurityConfig; // <-- VERIFY YOUR PACKAGE NAME
+package com.example.bankingmanagement.security;
 
 import com.example.bankingmanagement.security.jwt.AuthEntryPointJwt;
 import com.example.bankingmanagement.security.jwt.AuthTokenFilter;

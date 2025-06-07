@@ -3,43 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
+  <title>Admin Dashboard - Fresh Start</title>
   <style>
+    /* Basic Layout & Styling */
     body {
         font-family: Arial, sans-serif;
-        margin: 20px;
+        margin: 0;
         background-color: #f4f4f4;
         color: #333;
+        display: flex; /* Use flexbox for main layout */
+        min-height: 100vh; /* Full viewport height */
     }
-    .container {
-        max-width: 1300px; /* Increased width to fit User column */
-        margin: auto;
-        background: #fff;
+    .sidebar {
+        width: 220px;
+        background-color: #2c3e50; /* Dark blue/grey */
+        color: white;
         padding: 20px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+    }
+    .sidebar h2 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #ecf0f1; /* Light grey for heading */
+    }
+    .sidebar nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .sidebar nav ul li {
+        margin-bottom: 10px;
+    }
+    .sidebar nav ul li a {
+        display: block;
+        padding: 10px 15px;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+    .sidebar nav ul li a:hover,
+    .sidebar nav ul li a.active {
+        background-color: #34495e; /* Slightly lighter dark blue */
+    }
+    .main-content {
+        flex-grow: 1; /* Takes up remaining space */
+        padding: 20px;
+        background-color: #fff;
+        margin: 20px; /* Space around the content box */
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h1, h2 {
-        color: #0056b3;
     }
     .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
     }
     .logout-button {
-        background-color: #dc3545;
+        background-color: #e74c3c; /* Red */
         color: white;
         padding: 8px 15px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 1em;
+        font-size: 0.9em;
+        transition: background-color 0.3s ease;
     }
     .logout-button:hover {
-        background-color: #c82333;
+        background-color: #c0392b; /* Darker red */
     }
+
+    /* Content Section Styling (for each tab/module) */
+    .content-section {
+        display: none; /* Hidden by default */
+        margin-top: 20px;
+    }
+    .content-section.active {
+        display: block; /* Show active section */
+    }
+
+    /* Message Styling */
     .message {
         margin-top: 15px;
         padding: 10px;
@@ -50,98 +98,103 @@
     .message.hidden {
         opacity: 0;
     }
-    .success {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-    .error {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-    .info {
-        background-color: #d1ecf1;
-        color: #0c5460;
-        border: 1px solid #bee5eb;
-    }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+    /* Table Styling (will be applied to all tables in sections) */
     table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
-        table-layout: fixed;
+        table-layout: auto; /* Allow content to dictate width, or fixed for control */
     }
     th, td {
         border: 1px solid #ddd;
-        padding: 8px;
+        padding: 10px;
         text-align: left;
         word-wrap: break-word;
     }
     th {
         background-color: #f2f2f2;
+        font-weight: bold;
     }
-    /* Specific column widths for better layout */
-    #usersTable th:nth-child(1), #accountsTable th:nth-child(1), #transactionsTable th:nth-child(1) { width: 5%; } /* ID */
-    #usersTable th:nth-child(2), #accountsTable th:nth-child(2) { width: 20%; } /* Username/Account Number */
-    #usersTable th:nth-child(3), #accountsTable th:nth-child(3) { width: 25%; } /* Email/Type */
-    #usersTable th:nth-child(4), #accountsTable th:nth-child(4) { width: 20%; } /* Roles/Balance */
-    #accountsTable th:nth-child(5) { width: 30%; } /* Owner */
-
-    #transactionsTable th:nth-child(2) { width: 10%; } /* Type */
-    #transactionsTable th:nth-child(3) { width: 10%; } /* Amount */
-    #transactionsTable th:nth-child(4) { width: 15%; } /* Date */
-    #transactionsTable th:nth-child(5) { width: 15%; } /* Source Account */
-    #transactionsTable th:nth-child(6) { width: 15%; } /* Destination Account */
-    #transactionsTable th:nth-child(7) { width: 10%; } /* Status */
-    #transactionsTable th:nth-child(8) { width: 10%; } /* User (NEW) */
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    tr:hover {
+        background-color: #f1f1f1;
+    }
   </style>
 </head>
 <body>
-<div class="container">
+<div class="sidebar">
+  <h2>Admin Panel</h2>
+  <nav>
+    <ul>
+      <li><a href="#" class="nav-link active" data-section="dashboard">Dashboard</a></li>
+      <li><a href="#" class="nav-link" data-section="users">User Management</a></li>
+      <li><a href="#" class="nav-link" data-section="accounts">Account Management</a></li>
+      <li><a href="#" class="nav-link" data-section="transactions">Transaction History</a></li>
+      <li><a href="#" class="nav-link" data-section="approvals">Pending Approvals</a></li>
+      <li><a href="#" class="nav-link" data-section="audit-logs">Audit Logs</a></li>
+    </ul>
+  </nav>
+</div>
+
+<div class="main-content">
   <div class="header">
-    <h1 id="welcomeMessage">Admin Dashboard</h1>
+    <h1 id="welcomeMessage">Welcome, Admin!</h1>
     <button class="logout-button" id="logoutButton">Logout</button>
   </div>
 
-  <div id="adminContent">
-    <h2>All Users</h2>
+  <div id="dashboard" class="content-section active">
+    <h2>Dashboard Overview</h2>
+    <p>Welcome to your comprehensive administration dashboard. Use the sidebar to navigate through various management tools.</p>
+  </div>
+
+  <div id="users" class="content-section">
+    <h2>User Management</h2>
     <div id="usersMessage" class="message"></div>
-    <table id="usersTable">
+    <table>
       <thead>
       <tr>
         <th>ID</th>
         <th>Username</th>
         <th>Email</th>
         <th>Roles</th>
+        <th>Actions</th>
       </tr>
       </thead>
-      <tbody>
+      <tbody id="usersTableBody">
       </tbody>
     </table>
+  </div>
 
-    <hr style="margin: 30px 0;">
-
-    <h2>All Accounts</h2>
+  <div id="accounts" class="content-section">
+    <h2>Account Management</h2>
     <div id="accountsMessage" class="message"></div>
-    <table id="accountsTable">
+    <table>
       <thead>
       <tr>
         <th>ID</th>
         <th>Account Number</th>
         <th>Type</th>
         <th>Balance</th>
-        <th>Owner (Username)</th>
+        <th>Owner</th>
+        <th>Status</th>
+        <th>Actions</th>
       </tr>
       </thead>
-      <tbody>
+      <tbody id="accountsTableBody">
       </tbody>
     </table>
+  </div>
 
-    <hr style="margin: 30px 0;">
-
-    <h2>All Transactions</h2>
+  <div id="transactions" class="content-section">
+    <h2>Transaction History</h2>
     <div id="transactionsMessage" class="message"></div>
-    <table id="transactionsTable">
+    <table>
       <thead>
       <tr>
         <th>ID</th>
@@ -151,97 +204,139 @@
         <th>Source Account</th>
         <th>Destination Account</th>
         <th>Status</th>
-        <th>User</th> </tr>
+        <th>User</th>
+      </tr>
       </thead>
-      <tbody>
+      <tbody id="transactionsTableBody">
       </tbody>
     </table>
   </div>
+
+  <div id="approvals" class="content-section">
+    <h2>Pending Approvals</h2>
+    <p>This section will show pending user registrations and new account creations awaiting approval.</p>
+  </div>
+
+  <div id="audit-logs" class="content-section">
+    <h2>Audit Logs</h2>
+    <p>This section will display a history of administrative actions and system events.</p>
+  </div>
+
 </div>
 
 <script>
-  const backendUrl = 'http://localhost:8083'; // Ensure this matches your backend port
+  // --- Configuration ---
+  const backendUrl = 'http://localhost:8083'; // Your Spring Boot backend URL
+
+  // --- DOM Elements ---
   const welcomeMessage = document.getElementById('welcomeMessage');
   const logoutButton = document.getElementById('logoutButton');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const contentSections = document.querySelectorAll('.content-section');
 
-  // Elements for Users table
-  const usersTableBody = document.querySelector('#usersTable tbody');
+  // --- Table Body References (for data population) ---
+  const usersTableBody = document.getElementById('usersTableBody');
+  const accountsTableBody = document.getElementById('accountsTableBody');
+  const transactionsTableBody = document.getElementById('transactionsTableBody');
+
+  // --- Message Elements ---
   const usersMessage = document.getElementById('usersMessage');
-
-  // Elements for Accounts table
-  const accountsTableBody = document.querySelector('#accountsTable tbody');
   const accountsMessage = document.getElementById('accountsMessage');
-
-  // Elements for Transactions table
-  const transactionsTableBody = document.querySelector('#transactionsTable tbody');
   const transactionsMessage = document.getElementById('transactionsMessage');
 
 
-  // --- Authentication Check and Page Setup ---
+  // --- Authentication & Page Setup on Load ---
   document.addEventListener('DOMContentLoaded', () => {
       const username = localStorage.getItem('username');
       const jwtToken = localStorage.getItem('jwtToken');
       const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
 
-      if (!jwtToken || !username) {
-          alert('Session expired or unauthorized. Please log in again.');
+      // Redirect to login if no token or username, or if not an Admin
+      if (!jwtToken || !username || !userRoles.includes('ROLE_ADMIN')) {
+          alert('Access Denied or Session Expired. Please log in with an Admin account.');
+          localStorage.removeItem('jwtToken');
+          localStorage.removeItem('username');
+          localStorage.removeItem('userRoles');
           window.location.href = '/login';
-          return;
+          return; // Stop execution if not authorized
       }
 
-      if (!userRoles.includes('ROLE_ADMIN')) {
-          alert('Access Denied: You do not have administrator privileges.');
-          window.location.href = '/dashboard';
-          return;
-      }
+      welcomeMessage.textContent = `Welcome, ${username}!`;
 
-      welcomeMessage.textContent = `Admin Dashboard - Welcome, ${username}!`;
-      fetchAllUsers();
-      fetchAllAccounts();
-      fetchAllTransactions();
+      // Default to showing the Dashboard section
+      showSection('dashboard');
+
+      // Initial data fetch (we'll call these when their respective sections are active later)
+      // fetchAllUsers();
+      // fetchAllAccounts();
+      // fetchAllTransactions();
   });
 
+  // --- Event Listeners ---
   logoutButton.addEventListener('click', () => {
-      localStorage.removeItem('jwtToken');
-      localStorage.removeItem('username');
-      localStorage.removeItem('userRoles');
-      window.location.href = '/login';
+      localStorage.clear(); // Clear all local storage
+      window.location.href = '/login'; // Redirect to login page
   });
 
-  // --- Helper function to display messages ---
+  navLinks.forEach(link => {
+      link.addEventListener('click', (event) => {
+          event.preventDefault(); // Prevent default link behavior
+          const sectionId = event.target.dataset.section;
+          showSection(sectionId); // Show the clicked section
+          // Remove 'active' from all links and add to the clicked one
+          navLinks.forEach(nav => nav.classList.remove('active'));
+          event.target.classList.add('active');
+
+          // --- IMPORTANT: Fetch data when a section becomes active ---
+          if (sectionId === 'users') {
+              fetchAllUsers();
+          } else if (sectionId === 'accounts') {
+              fetchAllAccounts();
+          } else if (sectionId === 'transactions') {
+              fetchAllTransactions();
+          }
+          // Add more conditions here for 'approvals', 'audit-logs' as you implement them
+      });
+  });
+
+  // --- Helper Functions ---
+
+  function showSection(sectionId) {
+      contentSections.forEach(section => {
+          if (section.id === sectionId) {
+              section.classList.add('active');
+          } else {
+              section.classList.remove('active');
+          }
+      });
+  }
+
   function displayMessage(element, message, type) {
       element.textContent = message;
       element.className = `message ${type}`;
       element.classList.remove('hidden');
       setTimeout(() => {
           element.classList.add('hidden');
-          setTimeout(() => {
-              element.textContent = '';
-              element.className = 'message';
-          }, 500);
+          setTimeout(() => { element.textContent = ''; element.className = 'message'; }, 500);
       }, 5000);
   }
 
-  // --- Fetch All Users Function (Existing) ---
+  // --- Data Fetching Functions (Initially empty, will be populated) ---
+
   async function fetchAllUsers() {
-      usersTableBody.innerHTML = '';
+      usersTableBody.innerHTML = '<tr><td colspan="5">Loading users...</td></tr>';
       usersMessage.textContent = '';
-
       const jwtToken = localStorage.getItem('jwtToken');
-
       try {
           const response = await fetch(`${backendUrl}/api/admin/users`, {
               method: 'GET',
-              headers: {
-                  'Authorization': `Bearer ${jwtToken}`,
-                  'Content-Type': 'application/json'
-              }
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
           });
-
           if (response.ok) {
               const users = await response.json();
+              usersTableBody.innerHTML = ''; // Clear loading message
               if (users.length === 0) {
-                  displayMessage(usersMessage, 'No users found in the system.', 'info');
+                  displayMessage(usersMessage, 'No users found.', 'info');
               } else {
                   users.forEach(user => {
                       const row = usersTableBody.insertRow();
@@ -249,52 +344,29 @@
                       row.insertCell(1).textContent = user.username;
                       row.insertCell(2).textContent = user.email;
                       const rolesCell = row.insertCell(3);
-                      if (user.roles && user.roles.length > 0) {
-                          rolesCell.textContent = user.roles.map(role => role.name.replace('ROLE_', '')).join(', ');
-                      } else {
-                          rolesCell.textContent = 'N/A';
-                      }
+                      rolesCell.textContent = (user.roles && user.roles.length > 0) ? user.roles.map(role => role.name.replace('ROLE_', '')).join(', ') : 'N/A';
+                      row.insertCell(4).textContent = 'Actions (Edit, Delete, Reset)'; // Placeholder for actions
                   });
-                  displayMessage(usersMessage, `Showing ${users.length} users.`, 'success');
+                  displayMessage(usersMessage, `Loaded ${users.length} users.`, 'success');
               }
-          } else if (response.status === 401) {
-              displayMessage(usersMessage, 'Session expired or unauthorized. Please log in again.', 'error');
-              localStorage.removeItem('jwtToken');
-              localStorage.removeItem('username');
-              localStorage.removeItem('userRoles');
-              setTimeout(() => window.location.href = '/login', 1500);
-          } else if (response.status === 403) {
-              displayMessage(usersMessage, 'Access Denied: You do not have permission to view users.', 'error');
-          } else {
-              const errorData = await response.json();
-              displayMessage(usersMessage, `Error fetching users: ${errorData.message || response.statusText}`, 'error');
-          }
-      } catch (error) {
-          console.error('Error fetching users:', error);
-          displayMessage(usersMessage, 'Network error or unable to connect to server.', 'error');
-      }
+          } else { handleFetchError(response, usersMessage, 'users'); }
+      } catch (error) { handleNetworkError(error, usersMessage, 'users'); }
   }
 
-  // --- Fetch All Accounts Function (Existing) ---
   async function fetchAllAccounts() {
-      accountsTableBody.innerHTML = '';
+      accountsTableBody.innerHTML = '<tr><td colspan="7">Loading accounts...</td></tr>';
       accountsMessage.textContent = '';
-
       const jwtToken = localStorage.getItem('jwtToken');
-
       try {
           const response = await fetch(`${backendUrl}/api/admin/accounts`, {
               method: 'GET',
-              headers: {
-                  'Authorization': `Bearer ${jwtToken}`,
-                  'Content-Type': 'application/json'
-              }
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
           });
-
           if (response.ok) {
               const accounts = await response.json();
+              accountsTableBody.innerHTML = ''; // Clear loading message
               if (accounts.length === 0) {
-                  displayMessage(accountsMessage, 'No accounts found in the system.', 'info');
+                  displayMessage(accountsMessage, 'No accounts found.', 'info');
               } else {
                   accounts.forEach(account => {
                       const row = accountsTableBody.insertRow();
@@ -302,74 +374,54 @@
                       row.insertCell(1).textContent = account.accountNumber;
                       row.insertCell(2).textContent = account.accountType;
                       row.insertCell(3).textContent = `$${parseFloat(account.balance).toFixed(2)}`;
-                      row.insertCell(4).textContent = account.user ? account.user.username : 'N/A';
+                      row.insertCell(4).textContent = (account.user && account.user.username) ? account.user.username : 'N/A';
+                      row.insertCell(5).textContent = account.status || 'Active'; // Assuming default 'Active' if no status field yet
+                      row.insertCell(6).textContent = 'Actions (Freeze, Unfreeze)'; // Placeholder
                   });
-                  displayMessage(accountsMessage, `Showing ${accounts.length} accounts.`, 'success');
+                  displayMessage(accountsMessage, `Loaded ${accounts.length} accounts.`, 'success');
               }
-          } else if (response.status === 401) {
-              displayMessage(accountsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
-              localStorage.removeItem('jwtToken');
-              localStorage.removeItem('username');
-              localStorage.removeItem('userRoles');
-              setTimeout(() => window.location.href = '/login', 1500);
-          } else if (response.status === 403) {
-              displayMessage(accountsMessage, 'Access Denied: You do not have permission to view accounts.', 'error');
-          } else {
-              const errorData = await response.json();
-              displayMessage(accountsMessage, `Error fetching accounts: ${errorData.message || response.statusText}`, 'error');
-          }
-      } catch (error) {
-          console.error('Error fetching accounts:', error);
-          displayMessage(accountsMessage, 'Network error or unable to connect to server.', 'error');
-      }
+          } else { handleFetchError(response, accountsMessage, 'accounts'); }
+      } catch (error) { handleNetworkError(error, accountsMessage, 'accounts'); }
   }
 
-  // --- Fetch All Transactions Function (Updated for User) ---
   async function fetchAllTransactions() {
-      transactionsTableBody.innerHTML = '';
+      transactionsTableBody.innerHTML = '<tr><td colspan="8">Loading transactions...</td></tr>';
       transactionsMessage.textContent = '';
-
       const jwtToken = localStorage.getItem('jwtToken');
-
       try {
           const response = await fetch(`${backendUrl}/api/admin/transactions`, {
               method: 'GET',
-              headers: {
-                  'Authorization': `Bearer ${jwtToken}`,
-                  'Content-Type': 'application/json'
-              }
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
           });
-
           if (response.ok) {
               const transactions = await response.json();
+              transactionsTableBody.innerHTML = ''; // Clear loading message
               if (transactions.length === 0) {
-                  displayMessage(transactionsMessage, 'No transactions found in the system.', 'info');
+                  displayMessage(transactionsMessage, 'No transactions found.', 'info');
               } else {
                   transactions.forEach(transaction => {
                       const row = transactionsTableBody.insertRow();
-
                       let sourceAccountDisplay = 'N/A';
                       let destinationAccountDisplay = 'N/A';
-                      let userNameDisplay = 'N/A'; // NEW variable for user's username
+                      let userNameDisplay = 'N/A';
+                      let transactionStatusDisplay = transaction.status || 'UNKNOWN';
 
-                      // Get username from the associated account
-                      if (transaction.account && transaction.account.user) {
+                      if (transaction.account && transaction.account.user && transaction.account.user.username) {
                           userNameDisplay = transaction.account.user.username;
                       }
 
-                      // Logic based on your specific TransactionType enum
                       if (transaction.type === 'DEPOSIT') {
                           sourceAccountDisplay = 'External';
-                          destinationAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                          destinationAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
                       } else if (transaction.type === 'WITHDRAWAL') {
-                          sourceAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                          sourceAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
                           destinationAccountDisplay = 'External';
                       } else if (transaction.type === 'TRANSFER_OUT') {
-                          sourceAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                          sourceAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
                           destinationAccountDisplay = transaction.relatedAccountNum || 'N/A';
                       } else if (transaction.type === 'TRANSFER_IN') {
                           sourceAccountDisplay = transaction.relatedAccountNum || 'N/A';
-                          destinationAccountDisplay = transaction.account ? transaction.account.accountNumber : 'N/A';
+                          destinationAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
                       }
 
                       row.insertCell(0).textContent = transaction.id;
@@ -378,28 +430,34 @@
                       row.insertCell(3).textContent = new Date(transaction.createdAt).toLocaleString();
                       row.insertCell(4).textContent = sourceAccountDisplay;
                       row.insertCell(5).textContent = destinationAccountDisplay;
-                      row.insertCell(6).textContent = transaction.status;
-                      row.insertCell(7).textContent = userNameDisplay; // NEW CELL for the user's username
+                      row.insertCell(6).textContent = transactionStatusDisplay;
+                      row.insertCell(7).textContent = userNameDisplay;
                   });
-                  displayMessage(transactionsMessage, `Showing ${transactions.length} transactions.`, 'success');
+                  displayMessage(transactionsMessage, `Loaded ${transactions.length} transactions.`, 'success');
               }
-          } else if (response.status === 401) {
-              displayMessage(transactionsMessage, 'Session expired or unauthorized. Please log in again.', 'error');
-              localStorage.removeItem('jwtToken');
-              localStorage.removeItem('username');
-              localStorage.removeItem('userRoles');
-              setTimeout(() => window.location.href = '/login', 1500);
-          } else if (response.status === 403) {
-              displayMessage(transactionsMessage, 'Access Denied: You do not have permission to view transactions.', 'error');
-          } else {
-              const errorData = await response.json();
-              displayMessage(transactionsMessage, `Error fetching transactions: ${errorData.message || response.statusText}`, 'error');
-          }
-      } catch (error) {
-          console.error('Error fetching transactions:', error);
-          displayMessage(transactionsMessage, 'Network error or unable to connect to server.', 'error');
+          } else { handleFetchError(response, transactionsMessage, 'transactions'); }
+      } catch (error) { handleNetworkError(error, transactionsMessage, 'transactions'); }
+  }
+
+  // --- Error Handling Helpers ---
+  async function handleFetchError(response, messageElement, type) {
+      if (response.status === 401) {
+          displayMessage(messageElement, `Session expired or unauthorized for ${type}. Please log in again.`, 'error');
+          localStorage.clear();
+          setTimeout(() => window.location.href = '/login', 1500);
+      } else if (response.status === 403) {
+          displayMessage(messageElement, `Access Denied: You do not have permission to view ${type}.`, 'error');
+      } else {
+          const errorData = await response.json().catch(() => ({})); // Try to parse JSON, fall back to empty object
+          displayMessage(messageElement, `Error fetching ${type}: ${errorData.message || response.statusText || 'Unknown error'}`, 'error');
       }
   }
+
+  function handleNetworkError(error, messageElement, type) {
+      console.error(`Network error fetching ${type}:`, error);
+      displayMessage(messageElement, `Network error or unable to connect to server for ${type}.`, 'error');
+  }
+
 </script>
 </body>
 </html>

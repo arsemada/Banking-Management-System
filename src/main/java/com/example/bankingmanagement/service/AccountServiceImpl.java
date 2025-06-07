@@ -9,13 +9,12 @@ import com.example.bankingmanagement.model.TransactionType;
 import com.example.bankingmanagement.repository.AccountRepository;
 import com.example.bankingmanagement.repository.UserRepository;
 import com.example.bankingmanagement.repository.TransactionRepository;
-import com.example.bankingmanagement.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime; // Already present, good.
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +38,7 @@ public class AccountServiceImpl implements AccountService {
         newAccount.setAccountType(accountType);
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setBalance(BigDecimal.ZERO);
+        // createdAt is set in Account constructor or @PrePersist if you add it there
 
         return accountRepository.save(newAccount);
     }
@@ -52,14 +52,14 @@ public class AccountServiceImpl implements AccountService {
         Account newAccount = new Account();
         newAccount.setAccountType(accountType);
         newAccount.setBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO);
-
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setUser(user);
+        // createdAt is set in Account constructor or @PrePersist
 
         Account savedAccount = accountRepository.save(newAccount);
 
         if (initialBalance != null && initialBalance.compareTo(BigDecimal.ZERO) > 0) {
-            // UPDATED: Added "COMPLETED" status
+            // Ensure status is set to "COMPLETED"
             Transaction initialDeposit = new Transaction(savedAccount, TransactionType.DEPOSIT, initialBalance, "COMPLETED");
             transactionRepository.save(initialDeposit);
         }
@@ -100,7 +100,7 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().add(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        // UPDATED: Added "COMPLETED" status
+        // Ensure status is set to "COMPLETED"
         Transaction transaction = new Transaction(updatedAccount, TransactionType.DEPOSIT, amount, "COMPLETED");
         transactionRepository.save(transaction);
 
@@ -124,7 +124,7 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        // UPDATED: Added "COMPLETED" status
+        // Ensure status is set to "COMPLETED"
         Transaction transaction = new Transaction(updatedAccount, TransactionType.WITHDRAWAL, amount, "COMPLETED");
         transactionRepository.save(transaction);
 
@@ -158,11 +158,10 @@ public class AccountServiceImpl implements AccountService {
         toAccount.setBalance(toAccount.getBalance().add(amount));
         accountRepository.save(toAccount);
 
-        // UPDATED: Added "COMPLETED" status for TRANSFER_OUT
+        // Ensure status is set to "COMPLETED" for both transfer transactions
         Transaction fromTransaction = new Transaction(fromAccount, TransactionType.TRANSFER_OUT, amount, toAccount.getAccountNumber(), "COMPLETED");
         transactionRepository.save(fromTransaction);
 
-        // UPDATED: Added "COMPLETED" status for TRANSFER_IN
         Transaction toTransaction = new Transaction(toAccount, TransactionType.TRANSFER_IN, amount, fromAccount.getAccountNumber(), "COMPLETED");
         transactionRepository.save(toTransaction);
     }

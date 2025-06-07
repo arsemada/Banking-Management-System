@@ -1,12 +1,20 @@
 package com.example.bankingmanagement.payload.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-@AllArgsConstructor // This generates the public MessageResponse(String message) constructor
 public class MessageResponse {
     private String message;
+
+    public MessageResponse(String message) { // Make sure this constructor exists
+        this.message = message;
+    }
+
+    public MessageResponse() { // Make sure this no-arg constructor exists
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }

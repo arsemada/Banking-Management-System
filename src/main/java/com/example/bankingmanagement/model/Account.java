@@ -1,7 +1,6 @@
 package com.example.bankingmanagement.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference; // For handling bidirectional relationships
-
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,12 +25,15 @@ public class Account {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    // Many-to-one relationship with User
-    // --- IMPORTANT CHANGE: fetch = FetchType.EAGER ---
-    @ManyToOne(fetch = FetchType.EAGER) // Changed from LAZY to EAGER to ensure User is loaded for admin view
+    // --- IMPORTANT: fetch = FetchType.EAGER to ensure User is loaded ---
+    @ManyToOne(fetch = FetchType.EAGER) // Changed from LAZY to EAGER
     @JoinColumn(name = "user_id", nullable = false) // Foreign key column
     @JsonBackReference // Prevents infinite recursion in JSON serialization
     private User user;
+
+    public Account() {
+        this.createdAt = LocalDateTime.now(); // Initialize creation timestamp
+    }
 
     // Getters and Setters
 

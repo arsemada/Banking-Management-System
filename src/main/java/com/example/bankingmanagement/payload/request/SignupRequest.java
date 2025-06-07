@@ -1,16 +1,17 @@
 package com.example.bankingmanagement.payload.request;
 
+import java.util.Set;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
-import com.example.bankingmanagement.model.Role; // Important import
+import lombok.Data; // Import this
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-import java.util.Set;
-
-@Getter
-@Setter
+@Data // Add this
+@NoArgsConstructor // Add this
+@AllArgsConstructor // Add this
 public class SignupRequest {
     @NotBlank
     @Size(min = 3, max = 20)
@@ -21,9 +22,13 @@ public class SignupRequest {
     @Email
     private String email;
 
+    // IMPORTANT: If your AuthService.java refers to getRoles(), this must be `roles`.
+    // If it refers to getRole(), this can be `role`. Ensure consistency.
+    private Set<String> roles; // Assuming 'roles' to match common use in Spring Security tutorial examples
+
     @NotBlank
     @Size(min = 6, max = 40)
     private String password;
 
-    private Set<String> roles;
+    // Lombok will generate all getters and setters.
 }
