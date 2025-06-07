@@ -11,15 +11,14 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity; // Import WebSecurity
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // Import WebSecurityCustomizer
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher; // Required for AntPathRequestMatcher
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableMethodSecurity // Enables @PreAuthorize, @PostAuthorize, @HasRole, etc.
@@ -54,26 +53,12 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * This bean is crucial for telling Spring Security to completely ignore
-     * certain paths from its entire filter chain. This is ideal for static
-     * resources and direct HTML page requests that should not be secured.
-     */
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring().requestMatchers(
-                // Static resources (CSS, JS, images, favicon)
                 new AntPathRequestMatcher("/css/**"),
                 new AntPathRequestMatcher("/js/**"),
-                new AntPathRequestMatcher("/favicon.ico"),
-                // Publicly accessible HTML pages
-                new AntPathRequestMatcher("/"),          // Root path (if you have an index.html)
-                new AntPathRequestMatcher("/login"),
-                new AntPathRequestMatcher("/register"),
-                new AntPathRequestMatcher("/dashboard"),
-                new AntPathRequestMatcher("/admin"),
-                // The error page itself should be accessible to display messages
-                new AntPathRequestMatcher("/error")
+                new AntPathRequestMatcher("/favicon.ico")
         );
     }
 
@@ -83,17 +68,21 @@ public class WebSecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // API authentication endpoints (JWT will be handled by AuthController)
+                        // API authentication endpoints (login, registration)
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Publicly accessible HTML pages (login, register, dashboard, admin, error)
+                        // All these HTML pages are served. Frontend JS will handle redirects based on roles.
+                        .requestMatchers("/", "/login", "/register", "/dashboard", "/admin", "/error").permitAll() // <-- CHANGED THIS BACK
                         // API endpoints requiring ADMIN role
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // API endpoints requiring USER or ADMIN role
-                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                        // All other API requests must be authenticated (e.g., /api/accounts, /api/transactions)
+                        // API endpoints requiring STAFF or ADMIN role
+                        .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
+                        // API endpoints requiring CUSTOMER or ADMIN role
+                        .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER", "ADMIN")
+                        // All other API requests must be authenticated
                         .anyRequest().authenticated()
                 );
 
-        // Add the JWT token filter before the Spring Security UsernamePasswordAuthenticationFilter
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 

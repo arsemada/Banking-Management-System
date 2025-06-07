@@ -1,9 +1,9 @@
 package com.example.bankingmanagement.controller;
 
 import com.example.bankingmanagement.model.Account;
-import com.example.bankingmanagement.model.Transaction;
 import com.example.bankingmanagement.model.User;
-import com.example.bankingmanagement.payload.response.MessageResponse; // Ensure this import is present
+import com.example.bankingmanagement.payload.response.MessageResponse;
+import com.example.bankingmanagement.payload.response.TransactionDto; // Import the new DTO
 import com.example.bankingmanagement.service.AccountService;
 import com.example.bankingmanagement.service.TransactionService;
 import com.example.bankingmanagement.service.UserService;
@@ -47,14 +47,12 @@ public class AdminController {
     }
 
     @GetMapping("/users/{id}")
-    // *** FIX FOR YOUR COMPILE ERROR: Changed to ResponseEntity<?> ***
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         try {
             Optional<User> userOptional = userService.getUserById(id);
             if (userOptional.isPresent()) {
                 return ResponseEntity.ok().body(userOptional.get());
             } else {
-                // Corrected syntax for returning MessageResponse
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("User not found."));
             }
         } catch (Exception e) {
@@ -70,7 +68,8 @@ public class AdminController {
         try {
             List<Account> accounts = accountService.getAllAccounts();
             return ResponseEntity.ok(accounts);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.err.println("Error fetching accounts: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching accounts: " + e.getMessage()));
         }
@@ -94,13 +93,17 @@ public class AdminController {
     // --- Transaction Management Endpoint ---
 
     @GetMapping("/transactions")
-    public ResponseEntity<?> getAllTransactions() {
+    // Changed return type to List<TransactionDto>
+    public ResponseEntity<List<TransactionDto>> getAllTransactions() {
         try {
-            List<Transaction> transactions = transactionService.getAllTransactions();
+            List<TransactionDto> transactions = transactionService.getAllTransactions();
             return ResponseEntity.ok(transactions);
         } catch (Exception e) {
             System.err.println("Error fetching transactions: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error fetching transactions: " + e.getMessage()));
+            // It's good practice to have a specific error DTO for consistency
+            // For now, using MessageResponse, but return type is List<TransactionDto>
+            // So, for errors, it's better to return a ResponseEntity<?> or ErrorResponse
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null); // Or new ErrorResponse(...)
         }
     }
 }

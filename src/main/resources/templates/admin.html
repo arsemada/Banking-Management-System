@@ -403,25 +403,26 @@
                       const row = transactionsTableBody.insertRow();
                       let sourceAccountDisplay = 'N/A';
                       let destinationAccountDisplay = 'N/A';
-                      let userNameDisplay = 'N/A';
-                      let transactionStatusDisplay = transaction.status || 'UNKNOWN';
+                      let userNameDisplay = transaction.username || 'N/A'; // Directly use username from DTO
+                      let transactionStatusDisplay = transaction.status || 'UNKNOWN'; //
 
-                      if (transaction.account && transaction.account.user && transaction.account.user.username) {
-                          userNameDisplay = transaction.account.user.username;
-                      }
-
-                      if (transaction.type === 'DEPOSIT') {
-                          sourceAccountDisplay = 'External';
-                          destinationAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
-                      } else if (transaction.type === 'WITHDRAWAL') {
-                          sourceAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
-                          destinationAccountDisplay = 'External';
-                      } else if (transaction.type === 'TRANSFER_OUT') {
-                          sourceAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
-                          destinationAccountDisplay = transaction.relatedAccountNum || 'N/A';
-                      } else if (transaction.type === 'TRANSFER_IN') {
-                          sourceAccountDisplay = transaction.relatedAccountNum || 'N/A';
-                          destinationAccountDisplay = (transaction.account && transaction.account.accountNumber) ? transaction.account.accountNumber : 'N/A';
+                      // Simplified source/destination logic based on DTO fields
+                      if (transaction.type === 'DEPOSIT') { //
+                          sourceAccountDisplay = 'External'; //
+                          destinationAccountDisplay = transaction.accountNumber || 'N/A'; // Account receiving deposit
+                      } else if (transaction.type === 'WITHDRAWAL') { //
+                          sourceAccountDisplay = transaction.accountNumber || 'N/A'; // Account making withdrawal
+                          destinationAccountDisplay = 'External'; //
+                      } else if (transaction.type === 'TRANSFER_OUT') { //
+                          sourceAccountDisplay = transaction.accountNumber || 'N/A'; // Account making transfer
+                          destinationAccountDisplay = transaction.relatedAccountNum || 'N/A'; // Destination account of transfer
+                      } else if (transaction.type === 'TRANSFER_IN') { //
+                          sourceAccountDisplay = transaction.relatedAccountNum || 'N/A'; // Source account of transfer
+                          destinationAccountDisplay = transaction.accountNumber || 'N/A'; // Account receiving transfer
+                      } else {
+                          // Fallback for any other unexpected transaction type
+                          sourceAccountDisplay = 'N/A';
+                          destinationAccountDisplay = 'N/A';
                       }
 
                       row.insertCell(0).textContent = transaction.id;
