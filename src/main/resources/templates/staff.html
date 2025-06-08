@@ -121,7 +121,7 @@
             background-color: #f1f1f1;
         }
         .action-button {
-            background-color: #28a745; /* Green for approve */
+            background-color: #28a745; /* Green for approve / Activate */
             color: white;
             padding: 5px 10px;
             border: none;
@@ -137,6 +137,9 @@
         }
         .action-button.unfreeze {
             background-color: #17a2b8; /* Cyan for unfreeze */
+        }
+        .action-button.close {
+            background-color: #dc3545; /* Red for close */
         }
         .action-button:hover {
             opacity: 0.9;
@@ -379,20 +382,44 @@
                         row.insertCell(2).textContent = account.accountType;
                         row.insertCell(3).textContent = `$${parseFloat(account.balance).toFixed(2)}`;
                         row.insertCell(4).textContent = (account.user && account.user.username) ? account.user.username : 'N/A';
-                        row.insertCell(5).textContent = account.status || 'Active';
+                        row.insertCell(5).textContent = account.status || 'Active'; // Display account status
                         const actionsCell = row.insertCell(6);
 
-                        const freezeButton = document.createElement('button');
-                        freezeButton.textContent = 'Freeze';
-                        freezeButton.classList.add('action-button', 'freeze');
-                        freezeButton.addEventListener('click', () => freezeAccount(account.id));
-                        actionsCell.appendChild(freezeButton);
+                        // Buttons for account status changes
+                        if (account.status === 'PENDING') {
+                            const activateButton = document.createElement('button');
+                            activateButton.textContent = 'Activate';
+                            activateButton.classList.add('action-button'); // Green by default
+                            activateButton.addEventListener('click', () => updateAccountStatus(account.id, 'ACTIVE'));
+                            actionsCell.appendChild(activateButton);
+                        }
+                        if (account.status === 'ACTIVE') {
+                            const freezeButton = document.createElement('button');
+                            freezeButton.textContent = 'Freeze';
+                            freezeButton.classList.add('action-button', 'freeze');
+                            freezeButton.addEventListener('click', () => freezeAccount(account.id));
+                            actionsCell.appendChild(freezeButton);
 
-                        const unfreezeButton = document.createElement('button');
-                        unfreezeButton.textContent = 'Unfreeze';
-                        unfreezeButton.classList.add('action-button', 'unfreeze');
-                        unfreezeButton.addEventListener('click', () => unfreezeAccount(account.id));
-                        actionsCell.appendChild(unfreezeButton);
+                            const closeButton = document.createElement('button'); // Add Close button
+                            closeButton.textContent = 'Close';
+                            closeButton.classList.add('action-button', 'close');
+                            closeButton.addEventListener('click', () => closeAccount(account.id));
+                            actionsCell.appendChild(closeButton);
+
+                        } else if (account.status === 'FROZEN') {
+                            const unfreezeButton = document.createElement('button');
+                            unfreezeButton.textContent = 'Unfreeze';
+                            unfreezeButton.classList.add('action-button', 'unfreeze');
+                            unfreezeButton.addEventListener('click', () => unfreezeAccount(account.id));
+                            actionsCell.appendChild(unfreezeButton);
+
+                            const closeButton = document.createElement('button'); // Add Close button
+                            closeButton.textContent = 'Close';
+                            closeButton.classList.add('action-button', 'close');
+                            closeButton.addEventListener('click', () => closeAccount(account.id));
+                            actionsCell.appendChild(closeButton);
+                        }
+                        // No buttons if status is 'CLOSED'
                     });
                     displayMessage(accountsMessage, `Loaded ${accounts.length} customer accounts.`, 'success');
                 }
@@ -401,7 +428,7 @@
     }
 
     async function freezeAccount(accountId) {
-        if (!confirm(`Are you sure you want to FREEZE account number: ${accountId}?`)) {
+        if (!confirm(`Are you sure you want to FREEZE account ID: ${accountId}?`)) {
             return;
         }
         const jwtToken = localStorage.getItem('jwtToken');
@@ -418,7 +445,7 @@
     }
 
     async function unfreezeAccount(accountId) {
-        if (!confirm(`Are you sure you want to UNFREEZE account number: ${accountId}?`)) {
+        if (!confirm(`Are you sure you want to UNFREEZE account ID: ${accountId}?`)) {
             return;
         }
         const jwtToken = localStorage.getItem('jwtToken');
@@ -432,6 +459,42 @@
                 fetchAllCustomerAccounts(); // Refresh the list
             } else { handleFetchError(response, accountsMessage, 'unfreeze account'); }
         } catch (error) { handleNetworkError(error, accountsMessage, 'unfreeze account'); }
+    }
+
+    // --- NEW: Function to close an account ---
+    async function closeAccount(accountId) {
+        if (!confirm(`WARNING: Are you sure you want to CLOSE account ID: ${accountId}? This action might be irreversible.`)) {
+            return;
+        }
+        const jwtToken = localStorage.getItem('jwtToken');
+        try {
+            const response = await fetch(`${backendUrl}/api/staff/accounts/${accountId}/close`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+            });
+            if (response.ok) {
+                displayMessage(accountsMessage, `Account ${accountId} closed successfully!`, 'success');
+                fetchAllCustomerAccounts(); // Refresh the list
+            } else { handleFetchError(response, accountsMessage, 'close account'); }
+        } catch (error) { handleNetworkError(error, accountsMessage, 'close account'); }
+    }
+
+    // --- NEW: Function to update account status (e.g., PENDING to ACTIVE) ---
+    async function updateAccountStatus(accountId, newStatus) {
+        if (!confirm(`Are you sure you want to change status of account ID: ${accountId} to ${newStatus}?`)) {
+            return;
+        }
+        const jwtToken = localStorage.getItem('jwtToken');
+        try {
+            const response = await fetch(`${backendUrl}/api/staff/accounts/${accountId}/status?newStatus=${newStatus}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+            });
+            if (response.ok) {
+                displayMessage(accountsMessage, `Account ${accountId} status updated to ${newStatus} successfully!`, 'success');
+                fetchAllCustomerAccounts(); // Refresh the list
+            } else { handleFetchError(response, accountsMessage, `update status to ${newStatus}`); }
+        } catch (error) { handleNetworkError(error, accountsMessage, `update status to ${newStatus}`); }
     }
 
 </script>

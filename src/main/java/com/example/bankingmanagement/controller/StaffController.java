@@ -1,6 +1,7 @@
 package com.example.bankingmanagement.controller;
 
 import com.example.bankingmanagement.model.Account;
+import com.example.bankingmanagement.model.AccountStatus; // Import AccountStatus enum
 import com.example.bankingmanagement.model.User;
 import com.example.bankingmanagement.payload.response.MessageResponse;
 import com.example.bankingmanagement.service.AccountService;
@@ -23,16 +24,13 @@ public class StaffController {
     private UserService userService; // To manage user registrations
 
     @Autowired
-    private AccountService accountService; // To manage accounts (freeze/unfreeze)
+    private AccountService accountService; // To manage accounts (freeze/unfreeze/close/activate)
 
     // --- Customer Registration Approval Endpoints ---
 
     @GetMapping("/registrations/pending")
     public ResponseEntity<?> getPendingRegistrations() {
         try {
-            // Assuming you have a method in UserService to find users with a 'PENDING' status or similar
-            // For now, let's assume getInactiveUsers() returns users awaiting approval.
-            // You might need to adjust this based on how you track registration status.
             List<User> pendingUsers = userService.getInactiveUsers(); // You'll implement this method
             return ResponseEntity.ok(pendingUsers);
         } catch (Exception e) {
@@ -44,10 +42,9 @@ public class StaffController {
     @PostMapping("/registrations/{userId}/approve")
     public ResponseEntity<?> approveRegistration(@PathVariable Long userId) {
         try {
-            // You'll implement this method in UserService to change user status to active
             userService.approveUserRegistration(userId);
             return ResponseEntity.ok(new MessageResponse("User registration approved successfully!"));
-        } catch (RuntimeException e) { // Catch specific exceptions like UserNotFoundException
+        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
             System.err.println("Error approving registration: " + e.getMessage());
@@ -60,8 +57,6 @@ public class StaffController {
     @GetMapping("/accounts")
     public ResponseEntity<?> getAllCustomerAccounts() {
         try {
-            // Staff might only view active customer accounts, or all accounts.
-            // For now, let's use the same as admin, you can filter later if needed.
             List<Account> accounts = accountService.getAllAccounts();
             return ResponseEntity.ok(accounts);
         } catch (Exception e) {
@@ -73,10 +68,10 @@ public class StaffController {
     @PutMapping("/accounts/{accountId}/freeze")
     public ResponseEntity<?> freezeAccount(@PathVariable Long accountId) {
         try {
-            accountService.freezeAccount(accountId); // You'll implement this method
+            accountService.freezeAccount(accountId);
             return ResponseEntity.ok(new MessageResponse("Account frozen successfully!"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
+        } catch (RuntimeException e) { // Catch specific exceptions like ResourceNotFoundException, IllegalStateException
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage())); // Use BAD_REQUEST for business logic errors
         } catch (Exception e) {
             System.err.println("Error freezing account: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error freezing account: " + e.getMessage()));
@@ -86,13 +81,40 @@ public class StaffController {
     @PutMapping("/accounts/{accountId}/unfreeze")
     public ResponseEntity<?> unfreezeAccount(@PathVariable Long accountId) {
         try {
-            accountService.unfreezeAccount(accountId); // You'll implement this method
+            accountService.unfreezeAccount(accountId);
             return ResponseEntity.ok(new MessageResponse("Account unfrozen successfully!"));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
             System.err.println("Error unfreezing account: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error unfreezing account: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/accounts/{accountId}/close")
+    public ResponseEntity<?> closeAccount(@PathVariable Long accountId) {
+        try {
+            accountService.closeAccount(accountId);
+            return ResponseEntity.ok(new MessageResponse("Account closed successfully!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage())); // e.g., non-zero balance
+        } catch (Exception e) {
+            System.err.println("Error closing account: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error closing account: " + e.getMessage()));
+        }
+    }
+
+    // More general endpoint for status updates (e.g., PENDING to ACTIVE)
+    @PutMapping("/accounts/{accountId}/status")
+    public ResponseEntity<?> updateAccountStatus(@PathVariable Long accountId, @RequestParam AccountStatus newStatus) {
+        try {
+            Account updatedAccount = accountService.updateAccountStatus(accountId, newStatus);
+            return ResponseEntity.ok(new MessageResponse("Account status updated to " + updatedAccount.getStatus() + " successfully!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Error updating account status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("Error updating account status: " + e.getMessage()));
         }
     }
 }

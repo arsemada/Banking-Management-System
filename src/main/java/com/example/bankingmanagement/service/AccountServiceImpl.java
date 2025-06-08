@@ -2,7 +2,7 @@ package com.example.bankingmanagement.service;
 
 import com.example.bankingmanagement.exception.ResourceNotFoundException;
 import com.example.bankingmanagement.model.Account;
-import com.example.bankingmanagement.model.AccountStatus; // Import the new enum
+import com.example.bankingmanagement.model.AccountStatus;
 import com.example.bankingmanagement.model.AccountType;
 import com.example.bankingmanagement.model.User;
 import com.example.bankingmanagement.model.Transaction;
@@ -21,16 +21,19 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Transactional // Good practice for service methods that modify data
 public class AccountServiceImpl implements AccountService {
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
+    public AccountServiceImpl(AccountRepository accountRepository, UserRepository userRepository, TransactionRepository transactionRepository) {
+        this.accountRepository = accountRepository;
+        this.userRepository = userRepository;
+        this.transactionRepository = transactionRepository;
+    }
 
 
     @Override
@@ -45,7 +48,6 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
     public Account createAccountForUser(String username, AccountType accountType, BigDecimal initialBalance) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
@@ -55,7 +57,7 @@ public class AccountServiceImpl implements AccountService {
         newAccount.setBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO);
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setUser(user);
-        newAccount.setStatus(AccountStatus.ACTIVE); // Ensure status is explicitly set for new accounts
+        newAccount.setStatus(AccountStatus.PENDING); // Set to PENDING for staff approval, as discussed
         // createdAt is set in Account constructor
 
         Account savedAccount = accountRepository.save(newAccount);
@@ -92,7 +94,6 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
     public Account deposit(String username, Long accountId, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Deposit amount must be positive.");
@@ -109,7 +110,6 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().add(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        // Ensure status is set to "COMPLETED"
         Transaction transaction = new Transaction(updatedAccount, TransactionType.DEPOSIT, amount, "COMPLETED");
         transactionRepository.save(transaction);
 
@@ -117,7 +117,6 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
     public Account withdraw(String username, Long accountId, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Withdrawal amount must be positive.");
@@ -138,7 +137,6 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         Account updatedAccount = accountRepository.save(account);
 
-        // Ensure status is set to "COMPLETED"
         Transaction transaction = new Transaction(updatedAccount, TransactionType.WITHDRAWAL, amount, "COMPLETED");
         transactionRepository.save(transaction);
 
@@ -146,7 +144,6 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    @Transactional
     public void transferFunds(String username, Long fromAccountId, String toAccountNumber, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Transfer amount must be positive.");
@@ -180,7 +177,6 @@ public class AccountServiceImpl implements AccountService {
         toAccount.setBalance(toAccount.getBalance().add(amount));
         accountRepository.save(toAccount);
 
-        // Ensure status is set to "COMPLETED" for both transfer transactions
         Transaction fromTransaction = new Transaction(fromAccount, TransactionType.TRANSFER_OUT, amount, toAccount.getAccountNumber(), "COMPLETED");
         transactionRepository.save(fromTransaction);
 
@@ -205,14 +201,32 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.findById(accountId);
     }
 
-    // --- NEW Methods for Staff Dashboard ---
+    // --- NEW Implementations for Account Status Management ---
+
+    @Override
+    @Transactional
+    public Account updateAccountStatus(Long accountId, AccountStatus newStatus) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with ID: " + accountId));
+
+        // Optional: Add logic to prevent certain status transitions if needed
+        // For example, if trying to activate a closed account, or if closing a non-zero balance account (handled in closeAccount)
+
+        account.setStatus(newStatus);
+        return accountRepository.save(account);
+    }
+
     @Override
     @Transactional
     public void freezeAccount(Long accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with ID: " + accountId));
         if (account.getStatus() == AccountStatus.FROZEN) {
-            throw new RuntimeException("Account with ID: " + accountId + " is already frozen.");
+            // It's good to provide specific messages
+            throw new IllegalStateException("Account with ID: " + accountId + " is already frozen.");
+        }
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            throw new IllegalStateException("Cannot freeze a closed account with ID: " + accountId + ".");
         }
         account.setStatus(AccountStatus.FROZEN);
         accountRepository.save(account);
@@ -224,9 +238,31 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with ID: " + accountId));
         if (account.getStatus() == AccountStatus.ACTIVE) {
-            throw new RuntimeException("Account with ID: " + accountId + " is already active.");
+            throw new IllegalStateException("Account with ID: " + accountId + " is already active (unfrozen).");
+        }
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            throw new IllegalStateException("Cannot unfreeze a closed account with ID: " + accountId + ".");
         }
         account.setStatus(AccountStatus.ACTIVE); // Set back to active
+        accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public void closeAccount(Long accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with ID: " + accountId));
+
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            throw new IllegalStateException("Account with ID: " + accountId + " is already closed.");
+        }
+
+        // Logic to prevent closing if balance is not zero
+        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            throw new IllegalStateException("Cannot close account with a non-zero balance. Current balance: " + account.getBalance());
+        }
+
+        account.setStatus(AccountStatus.CLOSED);
         accountRepository.save(account);
     }
 }
