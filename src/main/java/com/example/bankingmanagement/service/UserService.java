@@ -7,7 +7,9 @@ import java.util.Optional;
 public interface UserService {
     Optional<User> findByUsername(String username);
 
-
     List<User> getAllUsers(); // To get all users
     Optional<User> getUserById(Long id);
+
+    List<User> getInactiveUsers();
+    void approveUserRegistration(Long userId);
 }

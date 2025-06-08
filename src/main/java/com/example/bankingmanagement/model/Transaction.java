@@ -13,7 +13,6 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // --- IMPORTANT: fetch = FetchType.EAGER to ensure Account is loaded ---
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "account_id", nullable = false)
     @JsonBackReference
@@ -29,18 +28,32 @@ public class Transaction {
     // For transfers, this stores the account number of the other party
     private String relatedAccountNum;
 
-    @Column(nullable = false, updatable = false)
+    // This is often for the database record creation time
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // --- ADD THIS FIELD FOR THE ACTUAL TRANSACTION DATE ---
+    @Column(name = "transaction_date", nullable = false, updatable = false) // Add this column mapping
+    private LocalDateTime transactionDate; // New field
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        // You can also set transactionDate here if it always matches createdAt
+        // However, if transactionDate can be different (e.g., historical transactions),
+        // it's better to set it in the constructor or service layer.
+        // For simplicity, let's set it here for now if not set elsewhere.
+        if (transactionDate == null) {
+            transactionDate = LocalDateTime.now();
+        }
     }
 
     @Column(nullable = false)
     private String status; // e.g., "COMPLETED", "PENDING", "FAILED"
 
     public Transaction() {
+        // Ensure transactionDate is also initialized for new objects if not done by @PrePersist reliably
+        this.transactionDate = LocalDateTime.now();
     }
 
     // Constructor for simple transactions (deposit/withdrawal)
@@ -49,6 +62,7 @@ public class Transaction {
         this.type = type;
         this.amount = amount;
         this.status = status;
+        this.transactionDate = LocalDateTime.now(); // <--- Initialize here!
     }
 
     // Constructor for transfers (with related account number)
@@ -58,6 +72,7 @@ public class Transaction {
         this.amount = amount;
         this.relatedAccountNum = relatedAccountNum;
         this.status = status;
+        this.transactionDate = LocalDateTime.now(); // <--- Initialize here!
     }
 
     // --- Getters and Setters ---
@@ -96,6 +111,16 @@ public class Transaction {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    // --- NEW: Getter and Setter for transactionDate ---
+    public LocalDateTime getTransactionDate() {
+        return transactionDate;
+    }
+
+    public void setTransactionDate(LocalDateTime transactionDate) {
+        this.transactionDate = transactionDate;
+    }
+    // --- END NEW ---
 
     public String getRelatedAccountNum() {
         return relatedAccountNum;

@@ -123,7 +123,8 @@
         const password = document.getElementById('regPassword').value;
 
         try {
-            const response = await fetch(`${backendUrl}/auth/signup`, {
+            // *** THE CRITICAL CHANGE IS HERE: Added /api/ before /auth/signup ***
+            const response = await fetch(`${backendUrl}/api/auth/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -136,7 +137,8 @@
             if (response.ok) {
                 registerSuccessMessageDiv.textContent = data.message || 'Registration successful!';
                 registerForm.reset();
-                alert('Registration successful! You can now login.');
+                alert('Registration successful! Your account is pending approval by bank staff. You will be able to log in once approved.');
+                // Redirect to login, but emphasize approval
                 window.location.href = '/login';
             } else {
                 registerErrorMessageDiv.textContent = data.message || 'Registration failed.';

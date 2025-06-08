@@ -30,4 +30,9 @@ public class FrontendController {
     public String showAdminPage() {
         return "admin";
     }
+
+    @GetMapping("/staff")
+    public String showStaffPage() {
+        return "staff";
+    }
 }

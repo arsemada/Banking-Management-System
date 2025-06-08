@@ -1,6 +1,7 @@
 package com.example.bankingmanagement.service;
 
 import com.example.bankingmanagement.model.Account;
+import com.example.bankingmanagement.model.AccountStatus; // Import the enum
 import com.example.bankingmanagement.model.AccountType;
 
 import java.math.BigDecimal;
@@ -28,5 +29,7 @@ public interface AccountService {
     List<Account> getAllAccounts();
     Optional<Account> getAccountByIdAdmin(Long accountId);
 
-
+    // --- NEW Methods for Staff Dashboard ---
+    void freezeAccount(Long accountId);
+    void unfreezeAccount(Long accountId);
 }

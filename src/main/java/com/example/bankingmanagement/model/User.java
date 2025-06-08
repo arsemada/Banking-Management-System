@@ -1,24 +1,24 @@
 package com.example.bankingmanagement.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference; // Import for handling bidirectional relationships
-import jakarta.persistence.*; // Correct for Spring Boot 3.x
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data; // Using @Data combines @Getter, @Setter, @ToString, @EqualsAndHashCode
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList; // For accounts list
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List; // For accounts list
+import java.util.List;
 import java.util.Set;
 
-@Data // Combines @Getter, @Setter, @ToString, @EqualsAndHashCode
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder // For easier object creation with .builder()
+@Builder
 @Entity
 @Table(name = "users",
         uniqueConstraints = {
@@ -30,38 +30,42 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank // Add validation
-    @Size(max = 20) // Add validation
+    @NotBlank
+    @Size(max = 20)
     private String username;
 
-    @NotBlank // Add validation
-    @Size(max = 50) // Add validation
-    @Email // Add validation
+    @NotBlank
+    @Size(max = 50)
+    @Email
     private String email;
 
-    @NotBlank // Add validation
-    @Size(max = 120) // Add validation
+    @NotBlank
+    @Size(max = 120)
     private String password;
+
+    // --- NEW Field for User Registration Status ---
+    @Column(nullable = false) // Ensure this column is not null
+    private boolean enabled = false; // Default to false (pending approval)
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles = new HashSet<>(); // This links to the Role entity
+    private Set<Role> roles = new HashSet<>();
 
-    // --- NEW: One-to-Many relationship with Accounts ---
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference // Prevents infinite recursion when User is serialized
-    private List<Account> accounts = new ArrayList<>(); // Initialize to avoid NullPointerException
+    @JsonManagedReference
+    private List<Account> accounts = new ArrayList<>();
 
+    // Manual constructor - keep this if you're explicitly using it for registration.
+    // Ensure it sets 'enabled' to false.
     public User(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;
+        this.enabled = false; // Important: new users are disabled by default
     }
 
-    // --- NEW: Helper methods for bidirectional relationship management ---
-    // Lombok's @Data will generate basic getters/setters. These are for managing the list.
     public void addAccount(Account account) {
         accounts.add(account);
         account.setUser(this);

@@ -109,7 +109,7 @@
       const password = document.getElementById('password').value;
 
       try {
-          const response = await fetch(`${backendUrl}/api/auth/signin`, { // Changed /auth to /api/auth
+          const response = await fetch(`${backendUrl}/api/auth/signin`, {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json'
@@ -120,33 +120,33 @@
           const data = await response.json();
 
           if (response.ok) {
-              // Your JwtResponse.java uses 'token' property for the JWT itself.
-              // Also ensures username and roles are stored.
               if (data.token) {
                   localStorage.setItem('jwtToken', data.token);
                   localStorage.setItem('username', data.username);
-                  localStorage.setItem('userRoles', JSON.stringify(data.roles || [])); // Store roles, default to empty array if null
+                  localStorage.setItem('userRoles', JSON.stringify(data.roles || []));
 
-                  // Conditional redirect based on user roles
+                  // *** CRITICAL CHANGE HERE: Add check for ROLE_STAFF ***
                   if (data.roles && data.roles.includes('ROLE_ADMIN')) {
                       alert('Login successful! Redirecting to Admin Dashboard...');
                       window.location.href = '/admin'; // Redirect to admin dashboard
-                  } else {
+                  } else if (data.roles && data.roles.includes('ROLE_STAFF')) { // NEW CHECK FOR STAFF
+                      alert('Login successful! Redirecting to Staff Dashboard...');
+                      window.location.href = '/staff'; // Redirect to staff dashboard
+                  }
+                  else {
                       alert('Login successful! Redirecting to User Dashboard...');
-                      window.location.href = '/dashboard'; // Redirect to regular dashboard
+                      window.location.href = '/dashboard'; // Redirect to regular user dashboard (or customer)
                   }
               } else {
                   console.error('Login successful, but no JWT token received. Response:', data);
                   errorMessageDiv.textContent = 'Login failed: Server did not provide a token.';
               }
           } else {
-              // Handle server-side errors (e.g., bad credentials)
               const message = data.message || 'Login failed. Please check your credentials.';
               errorMessageDiv.textContent = message;
               console.error('Login failed:', data);
           }
       } catch (error) {
-          // Handle network errors or other unexpected issues
           console.error('Network error or unexpected issue:', error);
           errorMessageDiv.textContent = 'A network error occurred. Please try again.';
       }

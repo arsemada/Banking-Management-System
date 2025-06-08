@@ -2,6 +2,7 @@ package com.example.bankingmanagement.service;
 
 import com.example.bankingmanagement.exception.ResourceNotFoundException;
 import com.example.bankingmanagement.model.Account;
+import com.example.bankingmanagement.model.AccountStatus; // Import the new enum
 import com.example.bankingmanagement.model.AccountType;
 import com.example.bankingmanagement.model.User;
 import com.example.bankingmanagement.model.Transaction;
@@ -38,7 +39,7 @@ public class AccountServiceImpl implements AccountService {
         newAccount.setAccountType(accountType);
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setBalance(BigDecimal.ZERO);
-        // createdAt is set in Account constructor or @PrePersist if you add it there
+        // createdAt and status are set in Account constructor or @PrePersist if you add it there
 
         return accountRepository.save(newAccount);
     }
@@ -54,7 +55,8 @@ public class AccountServiceImpl implements AccountService {
         newAccount.setBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO);
         newAccount.setAccountNumber(generateAccountNumber());
         newAccount.setUser(user);
-        // createdAt is set in Account constructor or @PrePersist
+        newAccount.setStatus(AccountStatus.ACTIVE); // Ensure status is explicitly set for new accounts
+        // createdAt is set in Account constructor
 
         Account savedAccount = accountRepository.save(newAccount);
 
@@ -71,6 +73,8 @@ public class AccountServiceImpl implements AccountService {
     public List<Account> getMyAccounts(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+        // You might want to ensure only active accounts are returned for customers
+        // return accountRepository.findByUserAndStatus(user, AccountStatus.ACTIVE);
         return accountRepository.findByUser(user);
     }
 
@@ -97,6 +101,11 @@ public class AccountServiceImpl implements AccountService {
         Account account = getAccountByIdAndUser(accountId, username)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found or not accessible."));
 
+        // Add check for account status
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw new IllegalStateException("Account is not active and cannot accept deposits.");
+        }
+
         account.setBalance(account.getBalance().add(amount));
         Account updatedAccount = accountRepository.save(account);
 
@@ -116,6 +125,11 @@ public class AccountServiceImpl implements AccountService {
 
         Account account = getAccountByIdAndUser(accountId, username)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found or not accessible."));
+
+        // Add check for account status
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw new IllegalStateException("Account is not active and cannot process withdrawals.");
+        }
 
         if (account.getBalance().compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient funds for withdrawal.");
@@ -143,6 +157,14 @@ public class AccountServiceImpl implements AccountService {
 
         Account toAccount = accountRepository.findByAccountNumber(toAccountNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination account not found."));
+
+        // Add check for account status
+        if (fromAccount.getStatus() != AccountStatus.ACTIVE) {
+            throw new IllegalStateException("Source account is not active and cannot initiate transfers.");
+        }
+        if (toAccount.getStatus() != AccountStatus.ACTIVE) {
+            throw new IllegalStateException("Destination account is not active and cannot receive transfers.");
+        }
 
         if (fromAccount.getId().equals(toAccount.getId())) {
             throw new IllegalArgumentException("Cannot transfer funds to the same account.");
@@ -181,5 +203,30 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Optional<Account> getAccountByIdAdmin(Long accountId) {
         return accountRepository.findById(accountId);
+    }
+
+    // --- NEW Methods for Staff Dashboard ---
+    @Override
+    @Transactional
+    public void freezeAccount(Long accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with ID: " + accountId));
+        if (account.getStatus() == AccountStatus.FROZEN) {
+            throw new RuntimeException("Account with ID: " + accountId + " is already frozen.");
+        }
+        account.setStatus(AccountStatus.FROZEN);
+        accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public void unfreezeAccount(Long accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with ID: " + accountId));
+        if (account.getStatus() == AccountStatus.ACTIVE) {
+            throw new RuntimeException("Account with ID: " + accountId + " is already active.");
+        }
+        account.setStatus(AccountStatus.ACTIVE); // Set back to active
+        accountRepository.save(account);
     }
 }
