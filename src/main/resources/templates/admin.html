@@ -125,6 +125,117 @@
     tr:hover {
         background-color: #f1f1f1;
     }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="password"],
+    .form-group select {
+        width: calc(100% - 22px); /* Account for padding and border */
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    }
+    .form-group input[type="checkbox"] {
+        margin-right: 5px;
+    }
+    .form-actions button {
+        background-color: #28a745; /* Green */
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+        margin-right: 10px;
+        transition: background-color 0.3s ease;
+    }
+    .form-actions button:hover {
+        background-color: #218838; /* Darker green */
+    }
+    .form-actions button.cancel {
+        background-color: #6c757d; /* Grey */
+    }
+    .form-actions button.cancel:hover {
+        background-color: #5a6268;
+    }
+
+    /* Action Buttons in Tables */
+    .action-button {
+        padding: 5px 10px;
+        margin: 2px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.8em;
+        transition: background-color 0.2s ease;
+    }
+    .action-button.edit { background-color: #007bff; color: white; }
+    .action-button.edit:hover { background-color: #0056b3; }
+    .action-button.disable { background-color: #ffc107; color: #333; }
+    .action-button.disable:hover { background-color: #e0a800; }
+    .action-button.enable { background-color: #28a745; color: white; }
+    .action-button.enable:hover { background-color: #218838; }
+    .action-button.delete { background-color: #dc3545; color: white; }
+    .action-button.delete:hover { background-color: #c82333; }
+    .action-button.approve { background-color: #17a2b8; color: white; }
+    .action-button.approve:hover { background-color: #138496; }
+
+    /* Modal Styling */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+        max-width: 600px; /* Limit width */
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        position: relative;
+    }
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close-button:hover,
+    .close-button:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .modal-header {
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h3 {
+        margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -155,6 +266,7 @@
 
   <div id="users" class="content-section">
     <h2>User Management</h2>
+    <button id="createNewUserButton" class="action-button edit">Create New User</button>
     <div id="usersMessage" class="message"></div>
     <table>
       <thead>
@@ -162,7 +274,12 @@
         <th>ID</th>
         <th>Username</th>
         <th>Email</th>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Phone</th>
+        <th>Address</th>
         <th>Roles</th>
+        <th>Status</th>
         <th>Actions</th>
       </tr>
       </thead>
@@ -214,7 +331,20 @@
 
   <div id="approvals" class="content-section">
     <h2>Pending Approvals</h2>
-    <p>This section will show pending user registrations and new account creations awaiting approval.</p>
+    <div id="approvalsMessage" class="message"></div>
+    <table>
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Registered On</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody id="inactiveUsersTableBody">
+      </tbody>
+    </table>
   </div>
 
   <div id="audit-logs" class="content-section">
@@ -222,6 +352,77 @@
     <p>This section will display a history of administrative actions and system events.</p>
   </div>
 
+</div>
+
+<div id="userModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="userModalTitle">Create New User</h3>
+      <span class="close-button">&times;</span>
+    </div>
+    <div id="userModalMessage" class="message"></div>
+    <form id="userForm">
+      <input type="hidden" id="userId" name="id">
+
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+
+      <div class="form-group" id="passwordGroup">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" minlength="6">
+        <small>Leave blank to keep current password (only for edit mode).</small>
+      </div>
+
+      <div class="form-group">
+        <label for="firstName">First Name:</label>
+        <input type="text" id="firstName" name="firstName" required>
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last Name:</label>
+        <input type="text" id="lastName" name="lastName" required>
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" required>
+      </div>
+
+      <div class="form-group">
+        <label for="phoneNumber">Phone Number:</label>
+        <input type="text" id="phoneNumber" name="phoneNumber" required>
+      </div>
+
+      <div class="form-group">
+        <label>Roles:</label>
+        <div>
+          <input type="checkbox" id="roleAdmin" name="roles" value="ADMIN">
+          <label for="roleAdmin">Admin</label>
+          <input type="checkbox" id="roleStaff" name="roles" value="STAFF">
+          <label for="roleStaff">Staff</label>
+          <input type="checkbox" id="roleCustomer" name="roles" value="CUSTOMER">
+          <label for="roleCustomer">Customer</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <input type="checkbox" id="userEnabled" name="enabled">
+        <label for="userEnabled">Account Enabled</label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" id="saveUserButton">Save User</button>
+        <button type="button" class="cancel close-button">Cancel</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -238,11 +439,36 @@
   const usersTableBody = document.getElementById('usersTableBody');
   const accountsTableBody = document.getElementById('accountsTableBody');
   const transactionsTableBody = document.getElementById('transactionsTableBody');
+  const inactiveUsersTableBody = document.getElementById('inactiveUsersTableBody'); // For pending approvals
 
   // --- Message Elements ---
   const usersMessage = document.getElementById('usersMessage');
   const accountsMessage = document.getElementById('accountsMessage');
   const transactionsMessage = document.getElementById('transactionsMessage');
+  const approvalsMessage = document.getElementById('approvalsMessage');
+  const userModalMessage = document.getElementById('userModalMessage');
+
+
+  // --- User Modal Elements ---
+  const userModal = document.getElementById('userModal');
+  const userModalTitle = document.getElementById('userModalTitle');
+  const closeButtons = document.querySelectorAll('.close-button');
+  const userForm = document.getElementById('userForm');
+  const createNewUserButton = document.getElementById('createNewUserButton');
+  const saveUserButton = document.getElementById('saveUserButton');
+
+  // Form fields
+  const userIdField = document.getElementById('userId');
+  const usernameField = document.getElementById('username');
+  const emailField = document.getElementById('email');
+  const passwordField = document.getElementById('password');
+  const passwordGroup = document.getElementById('passwordGroup'); // To hide/show password field
+  const firstNameField = document.getElementById('firstName');
+  const lastNameField = document.getElementById('lastName');
+  const addressField = document.getElementById('address');
+  const phoneNumberField = document.getElementById('phoneNumber');
+  const roleCheckboxes = document.querySelectorAll('input[name="roles"]');
+  const userEnabledCheckbox = document.getElementById('userEnabled');
 
 
   // --- Authentication & Page Setup on Load ---
@@ -265,11 +491,6 @@
 
       // Default to showing the Dashboard section
       showSection('dashboard');
-
-      // Initial data fetch (we'll call these when their respective sections are active later)
-      // fetchAllUsers();
-      // fetchAllAccounts();
-      // fetchAllTransactions();
   });
 
   // --- Event Listeners ---
@@ -294,9 +515,31 @@
               fetchAllAccounts();
           } else if (sectionId === 'transactions') {
               fetchAllTransactions();
+          } else if (sectionId === 'approvals') {
+              fetchInactiveUsers();
           }
-          // Add more conditions here for 'approvals', 'audit-logs' as you implement them
+          // Add more conditions here for 'audit-logs' as you implement them
       });
+  });
+
+  createNewUserButton.addEventListener('click', () => {
+      openUserModal('create');
+  });
+
+  closeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+          closeUserModal();
+      });
+  });
+
+  userForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const userId = userIdField.value;
+      if (userId) {
+          await updateUser(userId);
+      } else {
+          await createUser();
+      }
   });
 
   // --- Helper Functions ---
@@ -321,10 +564,50 @@
       }, 5000);
   }
 
-  // --- Data Fetching Functions (Initially empty, will be populated) ---
+  function openUserModal(mode, user = null) {
+      userForm.reset(); // Clear previous form data
+      userModalMessage.textContent = '';
+      userModalMessage.className = 'message'; // Reset message styling
+
+      if (mode === 'create') {
+          userModalTitle.textContent = 'Create New User';
+          userIdField.value = '';
+          usernameField.disabled = false; // Username is editable for new user
+          passwordField.required = true; // Password is required for new user
+          passwordGroup.style.display = 'block'; // Show password field
+          userEnabledCheckbox.checked = true; // Default to enabled for admin creation
+      } else if (mode === 'edit' && user) {
+          userModalTitle.textContent = `Edit User: ${user.username}`;
+          userIdField.value = user.id;
+          usernameField.value = user.username;
+          usernameField.disabled = true; // Username is not editable
+          emailField.value = user.email;
+          firstNameField.value = user.firstName || '';
+          lastNameField.value = user.lastName || '';
+          addressField.value = user.address || '';
+          phoneNumberField.value = user.phoneNumber || '';
+          passwordField.value = ''; // Clear password field, not sent on update if empty
+          passwordField.required = false; // Password is not required for edit
+          passwordGroup.style.display = 'block'; // Still show password field with instruction
+
+          // Set roles
+          roleCheckboxes.forEach(checkbox => {
+              checkbox.checked = user.roles.includes(checkbox.value);
+          });
+          userEnabledCheckbox.checked = user.enabled; // Set enabled status
+      }
+      userModal.style.display = 'block';
+  }
+
+  function closeUserModal() {
+      userModal.style.display = 'none';
+  }
+
+
+  // --- Data Fetching Functions ---
 
   async function fetchAllUsers() {
-      usersTableBody.innerHTML = '<tr><td colspan="5">Loading users...</td></tr>';
+      usersTableBody.innerHTML = '<tr><td colspan="10">Loading users...</td></tr>';
       usersMessage.textContent = '';
       const jwtToken = localStorage.getItem('jwtToken');
       try {
@@ -343,15 +626,210 @@
                       row.insertCell(0).textContent = user.id;
                       row.insertCell(1).textContent = user.username;
                       row.insertCell(2).textContent = user.email;
-                      const rolesCell = row.insertCell(3);
-                      rolesCell.textContent = (user.roles && user.roles.length > 0) ? user.roles.map(role => role.name.replace('ROLE_', '')).join(', ') : 'N/A';
-                      row.insertCell(4).textContent = 'Actions (Edit, Delete, Reset)'; // Placeholder for actions
+                      row.insertCell(3).textContent = user.firstName || 'N/A';
+                      row.insertCell(4).textContent = user.lastName || 'N/A';
+                      row.insertCell(5).textContent = user.phoneNumber || 'N/A';
+                      row.insertCell(6).textContent = user.address || 'N/A';
+                      const rolesCell = row.insertCell(7);
+                      rolesCell.textContent = (user.roles && user.roles.length > 0) ? user.roles.map(role => role.replace('ROLE_', '')).join(', ') : 'N/A';
+                      row.insertCell(8).textContent = user.enabled ? 'Enabled' : 'Disabled';
+
+                      const actionsCell = row.insertCell(9);
+                      const editButton = document.createElement('button');
+                      editButton.textContent = 'Edit';
+                      editButton.classList.add('action-button', 'edit');
+                      editButton.addEventListener('click', () => openUserModal('edit', user));
+                      actionsCell.appendChild(editButton);
+
+                      const statusButton = document.createElement('button');
+                      statusButton.classList.add('action-button', user.enabled ? 'disable' : 'enable');
+                      statusButton.textContent = user.enabled ? 'Disable' : 'Enable';
+                      statusButton.addEventListener('click', async () => {
+                          if (confirm(`Are you sure you want to ${user.enabled ? 'disable' : 'enable'} user ${user.username}?`)) {
+                              await toggleUserStatus(user.id, user.enabled);
+                          }
+                      });
+                      actionsCell.appendChild(statusButton);
+
+                      const deleteButton = document.createElement('button');
+                      deleteButton.textContent = 'Delete (Soft)';
+                      deleteButton.classList.add('action-button', 'delete');
+                      deleteButton.addEventListener('click', async () => {
+                          if (confirm(`Are you sure you want to soft delete (disable) user ${user.username}?`)) {
+                              await deleteUser(user.id);
+                          }
+                      });
+                      actionsCell.appendChild(deleteButton);
                   });
                   displayMessage(usersMessage, `Loaded ${users.length} users.`, 'success');
               }
           } else { handleFetchError(response, usersMessage, 'users'); }
       } catch (error) { handleNetworkError(error, usersMessage, 'users'); }
   }
+
+  async function createUser() {
+      const jwtToken = localStorage.getItem('jwtToken');
+      const newUser = {
+          username: usernameField.value,
+          email: emailField.value,
+          password: passwordField.value,
+          firstName: firstNameField.value,
+          lastName: lastNameField.value,
+          address: addressField.value,
+          phoneNumber: phoneNumberField.value,
+          roles: Array.from(roleCheckboxes).filter(cb => cb.checked).map(cb => cb.value),
+          enabled: userEnabledCheckbox.checked
+      };
+
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/users`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(newUser)
+          });
+          const data = await response.json();
+          if (response.ok) {
+              displayMessage(usersMessage, `User '${data.username}' created successfully!`, 'success');
+              closeUserModal();
+              fetchAllUsers(); // Refresh the user list
+          } else {
+              displayMessage(userModalMessage, data.message || 'Failed to create user.', 'error');
+          }
+      } catch (error) {
+          handleNetworkError(error, userModalMessage, 'user creation');
+      }
+  }
+
+  async function updateUser(userId) {
+      const jwtToken = localStorage.getItem('jwtToken');
+      const updatedUser = {
+          email: emailField.value,
+          firstName: firstNameField.value,
+          lastName: lastNameField.value,
+          address: addressField.value,
+          phoneNumber: phoneNumberField.value,
+          roles: Array.from(roleCheckboxes).filter(cb => cb.checked).map(cb => cb.value),
+          enabled: userEnabledCheckbox.checked
+      };
+
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/users/${userId}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(updatedUser)
+          });
+          const data = await response.json();
+          if (response.ok) {
+              displayMessage(usersMessage, `User '${data.username}' updated successfully!`, 'success');
+              closeUserModal();
+              fetchAllUsers(); // Refresh the user list
+          } else {
+              displayMessage(userModalMessage, data.message || 'Failed to update user.', 'error');
+          }
+      } catch (error) {
+          handleNetworkError(error, userModalMessage, 'user update');
+      }
+  }
+
+  async function toggleUserStatus(userId, currentStatus) {
+      const jwtToken = localStorage.getItem('jwtToken');
+      const action = currentStatus ? 'disable' : 'enable'; // If currently enabled, action is disable
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/users/${userId}/${action}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+          });
+          const data = await response.json();
+          if (response.ok) {
+              displayMessage(usersMessage, data.message, 'success');
+              fetchAllUsers(); // Refresh the user list
+              fetchInactiveUsers(); // Refresh approvals list, as status changed
+          } else {
+              displayMessage(usersMessage, data.message || `Failed to ${action} user.`, 'error');
+          }
+      } catch (error) {
+          handleNetworkError(error, usersMessage, `user ${action}`);
+      }
+  }
+
+  async function deleteUser(userId) {
+      const jwtToken = localStorage.getItem('jwtToken');
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/users/${userId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${jwtToken}` }
+          });
+          const data = await response.json();
+          if (response.ok) {
+              displayMessage(usersMessage, data.message, 'success');
+              fetchAllUsers(); // Refresh the user list
+              fetchInactiveUsers(); // Refresh approvals list
+          } else {
+              displayMessage(usersMessage, data.message || 'Failed to delete user.', 'error');
+          }
+      } catch (error) {
+          handleNetworkError(error, usersMessage, 'user deletion');
+      }
+  }
+
+  async function fetchInactiveUsers() {
+      inactiveUsersTableBody.innerHTML = '<tr><td colspan="5">Loading pending approvals...</td></tr>';
+      approvalsMessage.textContent = '';
+      const jwtToken = localStorage.getItem('jwtToken');
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/users/inactive`, {
+              method: 'GET',
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+          });
+          if (response.ok) {
+              const users = await response.json();
+              inactiveUsersTableBody.innerHTML = ''; // Clear loading message
+              if (users.length === 0) {
+                  displayMessage(approvalsMessage, 'No pending user registrations found.', 'info');
+              } else {
+                  users.forEach(user => {
+                      const row = inactiveUsersTableBody.insertRow();
+                      row.insertCell(0).textContent = user.id;
+                      row.insertCell(1).textContent = user.username;
+                      row.insertCell(2).textContent = user.email;
+                      row.insertCell(3).textContent = 'N/A'; // You might want to add registration date to User model
+                      const actionsCell = row.insertCell(4);
+                      const approveButton = document.createElement('button');
+                      approveButton.textContent = 'Approve';
+                      approveButton.classList.add('action-button', 'approve');
+                      approveButton.addEventListener('click', async () => {
+                          if (confirm(`Approve registration for user ${user.username}?`)) {
+                              await approveUser(user.id);
+                          }
+                      });
+                      actionsCell.appendChild(approveButton);
+                  });
+                  displayMessage(approvalsMessage, `Loaded ${users.length} pending approvals.`, 'success');
+              }
+          } else { handleFetchError(response, approvalsMessage, 'pending approvals'); }
+      } catch (error) { handleNetworkError(error, approvalsMessage, 'pending approvals'); }
+  }
+
+  async function approveUser(userId) {
+      const jwtToken = localStorage.getItem('jwtToken');
+      try {
+          const response = await fetch(`${backendUrl}/api/admin/users/${userId}/approve`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+          });
+          const data = await response.json();
+          if (response.ok) {
+              displayMessage(approvalsMessage, data.message, 'success');
+              fetchInactiveUsers(); // Refresh inactive users list
+              fetchAllUsers(); // Also refresh all users list as user status changed
+          } else {
+              displayMessage(approvalsMessage, data.message || 'Failed to approve user.', 'error');
+          }
+      } catch (error) {
+          handleNetworkError(error, approvalsMessage, 'user approval');
+      }
+  }
+
 
   async function fetchAllAccounts() {
       accountsTableBody.innerHTML = '<tr><td colspan="7">Loading accounts...</td></tr>';
@@ -407,18 +885,18 @@
                       let transactionStatusDisplay = transaction.status || 'UNKNOWN'; //
 
                       // Simplified source/destination logic based on DTO fields
-                      if (transaction.type === 'DEPOSIT') { //
-                          sourceAccountDisplay = 'External'; //
-                          destinationAccountDisplay = transaction.accountNumber || 'N/A'; // Account receiving deposit
-                      } else if (transaction.type === 'WITHDRAWAL') { //
-                          sourceAccountDisplay = transaction.accountNumber || 'N/A'; // Account making withdrawal
-                          destinationAccountDisplay = 'External'; //
-                      } else if (transaction.type === 'TRANSFER_OUT') { //
-                          sourceAccountDisplay = transaction.accountNumber || 'N/A'; // Account making transfer
-                          destinationAccountDisplay = transaction.relatedAccountNum || 'N/A'; // Destination account of transfer
-                      } else if (transaction.type === 'TRANSFER_IN') { //
-                          sourceAccountDisplay = transaction.relatedAccountNum || 'N/A'; // Source account of transfer
-                          destinationAccountDisplay = transaction.accountNumber || 'N/A'; // Account receiving transfer
+                      if (transaction.type === 'DEPOSIT') {
+                          sourceAccountDisplay = 'External';
+                          destinationAccountDisplay = transaction.accountNumber || 'N/A';
+                      } else if (transaction.type === 'WITHDRAWAL') {
+                          sourceAccountDisplay = transaction.accountNumber || 'N/A';
+                          destinationAccountDisplay = 'External';
+                      } else if (transaction.type === 'TRANSFER_OUT') {
+                          sourceAccountDisplay = transaction.accountNumber || 'N/A';
+                          destinationAccountDisplay = transaction.relatedAccountNum || 'N/A';
+                      } else if (transaction.type === 'TRANSFER_IN') {
+                          sourceAccountDisplay = transaction.relatedAccountNum || 'N/A';
+                          destinationAccountDisplay = transaction.accountNumber || 'N/A';
                       } else {
                           // Fallback for any other unexpected transaction type
                           sourceAccountDisplay = 'N/A';

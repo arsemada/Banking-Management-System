@@ -13,5 +13,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByUsername(String username);
     Boolean existsByEmail(String email);
 
-    List<User> findByEnabledFalse(); // Finds users where 'enabled' field is false
+    List<User> findByEnabledFalse(); // New method for inactive users
 }
